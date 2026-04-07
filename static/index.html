@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080d1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>UniPortal – علوم الحياة</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════ RESET & BASE ══════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body,#app{height:100%;overflow:hidden}
+body{font-family:'Cairo',sans-serif;background:#080d1a;color:#dde8f4;-webkit-font-smoothing:antialiased;overscroll-behavior:none;direction:rtl}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:rgba(0,200,255,.2);border-radius:4px}
+button,input,textarea,select{font-family:inherit}
+
+/* ══════════════ CSS VARIABLES ══════════════ */
+:root{
+  --bg:#080d1a;--bg2:#0d1829;--bg3:#111f3a;--bg4:#162240;
+  --surface:rgba(13,24,41,.95);--hov:rgba(255,255,255,.045);
+  --border:rgba(0,200,255,.1);--border2:rgba(255,255,255,.07);
+  --text:#dde8f4;--text2:#6a8aaa;--text3:#2a4560;
+  --accent:#00d4ff;--green:#22c55e;--purple:#a855f7;
+  --yellow:#f59e0b;--red:#ef4444;--orange:#fb923c;
+  --msg-mine:linear-gradient(135deg,#1a4a80,#1a5a9a);
+  --msg-other:rgba(255,255,255,.08);
+  --nav-bg:rgba(8,13,26,.97);--sidebar:rgba(10,18,34,.98);
+  --card:rgba(13,24,41,.9);--card-border:rgba(0,200,255,.12);
+  --shadow:0 8px 32px rgba(0,0,0,.6);
+  --inp-bg:rgba(255,255,255,.07);--inp-border:rgba(255,255,255,.1);
+}
+body.light{
+  --bg:#f0f4f8;--bg2:#ffffff;--bg3:#e8eef5;--bg4:#dce6f0;
+  --surface:rgba(255,255,255,.98);--hov:rgba(0,0,0,.035);
+  --border:rgba(0,100,200,.12);--border2:rgba(0,0,0,.08);
+  --text:#1a2840;--text2:#5a7090;--text3:#9ab0c8;
+  --accent:#0066cc;--green:#16a34a;--purple:#7c3aed;
+  --yellow:#d97706;--red:#dc2626;--orange:#ea580c;
+  --msg-mine:linear-gradient(135deg,#0055cc,#0077ee);
+  --msg-other:rgba(255,255,255,.98);
+  --nav-bg:rgba(255,255,255,.97);--sidebar:rgba(248,252,255,.98);
+  --card:rgba(255,255,255,.95);--card-border:rgba(0,100,200,.14);
+  --shadow:0 4px 24px rgba(0,0,0,.1);
+  --inp-bg:rgba(0,0,0,.04);--inp-border:rgba(0,0,0,.1);
+}
+body.ltr{direction:ltr;font-family:'Poppins','Cairo',sans-serif}
+
+/* ══════════════ ANIMATIONS ══════════════ */
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+@keyframes msgIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@keyframes iosIn{from{opacity:0;transform:translateX(-50%) translateY(-130%)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes iosOut{from{opacity:1;transform:translateX(-50%) translateY(0)}to{opacity:0;transform:translateX(-50%) translateY(-130%)}}
+@keyframes pulse{0%,100%{opacity:.12}50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pdfIn{from{opacity:0;transform:scaleY(.96)}to{opacity:1;transform:scaleY(1)}}
+@keyframes countUp{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+
+/* ══════════════ COMPONENTS ══════════════ */
+.glass{background:var(--surface);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:none;cursor:pointer;font-family:inherit;font-weight:700;border-radius:12px;transition:all .18s;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,#0055cc,#0088ff);color:#fff;padding:.65rem 1.5rem;font-size:.92rem}
+.btn-primary:hover{opacity:.9;box-shadow:0 4px 20px rgba(0,136,255,.4);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.38;cursor:not-allowed;transform:none}
+.btn-primary:active{transform:scale(.97)}
+.btn-sec{background:rgba(0,180,255,.1);color:var(--accent);border:1px solid rgba(0,180,255,.22);padding:.5rem 1.1rem;font-size:.85rem}
+.btn-sec:hover{background:rgba(0,180,255,.18)}
+.btn-danger{background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.25);padding:.46rem .9rem;font-size:.82rem}
+.btn-danger:hover{background:rgba(220,38,38,.2)}
+.btn-sm{padding:.38rem .8rem;font-size:.8rem;border-radius:9px}
+.btn-full{width:100%}
+.btn-icon{width:38px;height:38px;border-radius:50%;background:transparent;color:var(--text2);font-size:1.1rem;padding:0}
+.btn-icon:hover{background:var(--hov);color:var(--text)}
+.btn-icon:active{transform:scale(.88)}
+
+/* Inputs */
+.inp{background:var(--inp-bg);border:1px solid var(--inp-border);color:var(--text);border-radius:24px;padding:.6rem 1rem;font-family:inherit;font-size:.9rem;outline:none;direction:auto;transition:border-color .2s,box-shadow .2s;width:100%}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,200,255,.12)}
+.inp::placeholder{color:var(--text3)}
+.inp-flat{background:var(--inp-bg);border:1px solid var(--inp-border);color:var(--text);border-radius:14px;padding:.68rem 1rem;font-family:inherit;font-size:.92rem;outline:none;direction:auto;width:100%;transition:border-color .2s}
+.inp-flat:focus{border-color:var(--accent)}
+.inp-flat::placeholder{color:var(--text3)}
+textarea.inp-flat{resize:vertical;min-height:80px}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:18px;box-shadow:var(--shadow)}
+
+/* Pills */
+.pill{display:inline-flex;align-items:center;gap:.22rem;padding:.1rem .5rem;border-radius:99px;font-size:.68rem;font-weight:800}
+
+/* Toggle */
+.toggle{position:relative;width:48px;height:26px;cursor:pointer;border-radius:99px;border:none;outline:none;transition:background .25s;flex-shrink:0}
+.toggle-dot{position:absolute;top:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .25s;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+
+/* Nav bottom */
+.nav-b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.16rem;cursor:pointer;color:var(--text3);transition:color .18s;padding:.44rem .5rem;flex:1;font-size:.6rem;font-weight:700;position:relative;user-select:none;border:none;background:transparent}
+.nav-b.on{color:var(--accent)}
+.nav-b:hover{color:var(--accent)}
+
+/* Channel rows */
+.ch-row{display:flex;align-items:center;gap:.7rem;padding:.58rem 1rem;cursor:pointer;transition:background .12s;border-radius:0}
+.ch-row:hover{background:var(--hov)}
+.ch-row.sel{background:rgba(0,200,255,.09)}
+
+/* Tab buttons */
+.tab-b{padding:.44rem .9rem;border-radius:10px;cursor:pointer;border:none;font-weight:700;font-size:.82rem;transition:all .18s;background:transparent;color:var(--text3)}
+.tab-b.on{background:rgba(0,200,255,.12);color:var(--accent)}
+.tab-b:hover{color:var(--accent)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:900;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(8px);animation:fadeIn .18s}
+.modal-box{background:var(--bg2);border-radius:22px 22px 0 0;width:100%;max-width:520px;padding:1.5rem 1.3rem 2.4rem;max-height:90vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1)}
+.modal-title{font-weight:800;font-size:1.05rem;color:var(--accent);margin-bottom:1.25rem}
+
+/* Ann cards */
+.ann-card{background:var(--card);border:1px solid var(--card-border);border-radius:18px;padding:1.1rem 1.2rem;margin-bottom:.75rem;animation:slideUp .3s ease;transition:box-shadow .2s,border-color .2s}
+.ann-card:hover{box-shadow:var(--shadow);border-color:rgba(0,200,255,.22)}
+
+/* Message bubbles */
+.msg-wrap{display:flex;gap:8px;margin-bottom:6px;animation:msgIn .22s ease;align-items:flex-end}
+.msg-mine{flex-direction:row-reverse}
+.bubble{padding:9px 13px;word-break:break-word;line-height:1.65;font-size:.9rem;box-shadow:var(--shadow)}
+.bubble-mine{background:var(--msg-mine);color:#fff;border-radius:18px 18px 5px 18px}
+.bubble-other{background:var(--msg-other);color:var(--text);border-radius:18px 18px 18px 5px;border:1px solid var(--border2)}
+
+/* Setting rows */
+.setting-row{display:flex;align-items:center;gap:12px;padding:13px 1.2rem;cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border2)}
+.setting-row:hover{background:var(--hov)}
+
+/* Bio background cells */
+.bio-cell{position:absolute;border-radius:50%;border:1px solid;animation:pulse ease-in-out infinite}
+
+/* Notification banner */
+.notif-banner{position:fixed;top:10px;left:50%;transform:translateX(-50%);width:min(calc(100% - 20px),400px);z-index:9999;cursor:pointer}
+.notif-inner{background:rgba(18,28,52,.97);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:22px;padding:10px 14px;box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.07);display:flex;align-items:center;gap:12px;direction:rtl}
+body.light .notif-inner{background:rgba(245,249,255,.97);box-shadow:0 8px 40px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.06)}
+.notif-app-icon{width:52px;height:52px;border-radius:15px;flex-shrink:0;background:linear-gradient(145deg,#063070,#0058d0);border:1px solid rgba(0,200,255,.25);display:flex;align-items:center;justify-content:center;font-size:1.65rem;box-shadow:0 4px 18px rgba(0,60,200,.4)}
+.unread-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
+/* Bio BG */
+#bio-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.body-light #bio-bg{display:none}
+
+/* Spinner */
+.spin{animation:spin 1s linear infinite;display:inline-block}
+
+/* Layout */
+#app{display:flex;flex-direction:column;position:relative}
+#main-layout{display:flex;flex:1;overflow:hidden;position:relative;z-index:1}
+#topbar{height:52px;min-height:52px;display:flex;align-items:center;padding:0 1rem;gap:.75rem;background:var(--nav-bg);border-bottom:1px solid var(--border);z-index:10;backdrop-filter:blur(20px)}
+#sidebar{width:300px;min-width:260px;max-width:320px;border-inline-end:1px solid var(--border);display:flex;flex-direction:column;background:var(--sidebar)}
+#main-area{flex:1;overflow:hidden;display:flex;flex-direction:column}
+#bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--nav-bg);backdrop-filter:blur(20px);padding-bottom:env(safe-area-inset-bottom);flex-shrink:0}
+
+/* PDF Viewer */
+#pdf-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:800;display:flex;flex-direction:column;animation:fadeIn .2s;backdrop-filter:blur(14px)}
+.pdf-page-inner{background:#fff;max-width:640px;width:100%;border-radius:8px;box-shadow:0 4px 32px rgba(0,0,0,.5);animation:pdfIn .3s ease}
+
+/* Avatar */
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0;overflow:hidden;position:relative}
+.online-dot{position:absolute;bottom:0;right:0;width:28%;height:28%;border-radius:50%;background:var(--green);border:2px solid var(--bg2)}
+
+/* Attach menu */
+#attach-menu{position:absolute;bottom:115%;right:0;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:160px;box-shadow:var(--shadow);z-index:50;animation:slideUp .2s ease}
+.attach-item{display:flex;align-items:center;gap:9px;background:transparent;border:none;color:var(--text);cursor:pointer;padding:8px 10px;border-radius:10px;transition:background .12s;font-size:.87rem;font-family:inherit;width:100%;text-align:right}
+.attach-item:hover{background:var(--hov)}
+
+/* Lightbox */
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:900;display:flex;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(10px);animation:fadeIn .2s}
+
+/* Badge counter */
+.badge{background:var(--red);color:#fff;border-radius:99px;min-width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;padding:0 4px;position:absolute;top:-4px;right:-5px}
+
+@media(max-width:700px){.dsk{display:none!important}}
+@media(min-width:701px){.mob{display:none!important}}
+</style>
+</head>
+<body>
+
+<div id="bio-bg">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 65% 55% at 82% 12%,rgba(0,80,180,.2),transparent 60%),radial-gradient(ellipse 50% 60% at 10% 85%,rgba(0,140,70,.1),transparent 55%)"></div>
+  <div class="bio-cell" style="width:380px;height:380px;top:-5%;right:-8%;border-color:rgba(0,212,255,.12);background:radial-gradient(circle,rgba(0,212,255,.1) 0%,transparent 65%);animation-duration:7s"></div>
+  <div class="bio-cell" style="width:260px;height:260px;top:60%;left:-7%;border-color:rgba(34,197,94,.1);background:radial-gradient(circle,rgba(34,197,94,.08) 0%,transparent 65%);animation-duration:9s;animation-delay:1.5s"></div>
+  <div class="bio-cell" style="width:200px;height:200px;top:30%;left:44%;border-color:rgba(168,85,247,.1);background:radial-gradient(circle,rgba(168,85,247,.07) 0%,transparent 65%);animation-duration:8s;animation-delay:1s"></div>
+  <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.14"><defs><pattern id="g" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M44 0L0 0 0 44" fill="none" stroke="rgba(0,212,255,.6)" stroke-width=".4"/></pattern></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>
+</div>
+
+<div id="app"></div>
+
+<!-- React + Babel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+
+/* ══════════════════════════════════════════════
+   CONSTANTS & i18n
+══════════════════════════════════════════════ */
+const ROLES_DEF = {
+  'رئيس': {lv:5,clr:'#f59e0b',icon:'👑',postGen:false,createCh:false,admin:true},
+  'مقرر': {lv:4,clr:'#ef4444',icon:'📋',postGen:true, createCh:false,admin:true},
+  'دكتور':{lv:3,clr:'#00d4ff',icon:'🔬',postGen:false,createCh:true, admin:false},
+  'ممثل': {lv:2,clr:'#a855f7',icon:'🎖️',postGen:false,createCh:true, admin:false},
+  'طالب': {lv:1,clr:'#22c55e',icon:'🎓',postGen:false,createCh:false,admin:false},
+};
+
+const T = {
+  ar:{
+    app:'UniPortal',dept:'قسم علوم الحياة',
+    login:'تسجيل الدخول',uid:'الرقم الجامعي',password:'كلمة المرور',enter:'دخول',
+    quickLogin:'تسجيل سريع – اختر دوراً للتجربة',
+    wrongUid:'الرقم الجامعي غير موجود',wrongPwd:'كلمة المرور غير صحيحة',
+    chats:'المحادثات',anns:'الإعلانات',notifs:'الإشعارات',settings:'الإعدادات',admin:'التحكم',
+    general:'القناة العامة',myChannels:'قنواتي',
+    search:'بحث...',searchCh:'ابحث في القنوات...',
+    newChannel:'قناة جديدة',createChannel:'إنشاء قناة',chName:'اسم القناة',chDesc:'وصف القناة',
+    readOnly:'للاستماع فقط',readOnlyNote:'هذه القناة للقراءة فقط',
+    typeMsg:'اكتب رسالة...',send:'إرسال',
+    pdf:'ملف PDF',image:'صورة',link:'رابط',
+    download:'تحميل',page:'صفحة',of:'من',member:'عضو',
+    profile:'الملف الشخصي',editProfile:'تعديل الحساب',changePic:'تغيير الصورة',
+    name:'الاسم',bio:'نبذة',saveChanges:'حفظ التغييرات',logout:'تسجيل الخروج',
+    theme:'المظهر',dark:'داكن',light:'فاتح',language:'اللغة',
+    notifSounds:'أصوات الإشعارات',notifBadges:'الشارات',
+    privacy:'الخصوصية',storage:'التخزين',version:'الإصدار',
+    users:'المستخدمون',sections:'الشُعب',statistics:'الإحصائيات',
+    total:'الإجمالي',online:'متصل',edit:'تعديل',save:'حفظ',cancel:'إلغاء',
+    pin:'تثبيت',unpin:'إلغاء التثبيت',pinned:'مثبّت',now:'الآن',yesterday:'أمس',
+    annDesc:'الإعلانات والتنبيهات الرسمية',newAnn:'إعلان جديد',annTitle:'عنوان الإعلان',annContent:'محتوى الإعلان',
+    noChannels:'لا توجد قنوات',selectChannel:'اختر قناة للبدء',
+    youHave:'لديك',visibleCh:'قناة مرئية',
+    markAllRead:'قراءة الكل',unread:'غير مقروء',noNotifs:'لا توجد إشعارات',
+    pdfViewer:'عارض PDF',views:'مشاهدة',
+    loading:'جاري التحميل...',error:'خطأ',retry:'إعادة المحاولة',
+    enableNotifs:'تفعيل الإشعارات',enableNotifsDesc:'أضغط للحصول على الإشعارات الفورية',
+    changePwd:'تغيير كلمة المرور',newPwd:'كلمة المرور الجديدة',
+    online:'متصل الآن',offline:'غير متصل',
+    docChannels:'قنوات الدكاتره',repChannels:'قنوات الممثلين',generalChannels:'إعلانات',
+    postAnn:'نشر الإعلان',
+    statsTitle:'إحصائيات القسم',
+  },
+  en:{
+    app:'UniPortal',dept:'Life Sciences Dept.',
+    login:'Sign In',uid:'University ID',password:'Password',enter:'Sign In',
+    quickLogin:'Quick Login – Choose a Role',
+    wrongUid:'University ID not found',wrongPwd:'Incorrect password',
+    chats:'Chats',anns:'Announcements',notifs:'Notifications',settings:'Settings',admin:'Admin',
+    general:'General Channel',myChannels:'My Channels',
+    search:'Search...',searchCh:'Search channels...',
+    newChannel:'New Channel',createChannel:'Create Channel',chName:'Channel Name',chDesc:'Description',
+    readOnly:'Read Only',readOnlyNote:'This channel is read-only',
+    typeMsg:'Type a message...',send:'Send',
+    pdf:'PDF File',image:'Image',link:'Link',
+    download:'Download',page:'Page',of:'of',member:'member',
+    profile:'Profile',editProfile:'Edit Profile',changePic:'Change Photo',
+    name:'Name',bio:'Bio',saveChanges:'Save Changes',logout:'Sign Out',
+    theme:'Appearance',dark:'Dark',light:'Light',language:'Language',
+    notifSounds:'Notification Sounds',notifBadges:'Badges',
+    privacy:'Privacy',storage:'Storage',version:'Version',
+    users:'Users',sections:'Sections',statistics:'Statistics',
+    total:'Total',online:'Online',edit:'Edit',save:'Save',cancel:'Cancel',
+    pin:'Pin',unpin:'Unpin',pinned:'Pinned',now:'now',yesterday:'Yesterday',
+    annDesc:'Official announcements & alerts',newAnn:'New Announcement',annTitle:'Title',annContent:'Content',
+    noChannels:'No channels',selectChannel:'Select a channel to start',
+    youHave:'You have',visibleCh:'visible channels',
+    markAllRead:'Mark All Read',unread:'Unread',noNotifs:'No notifications',
+    pdfViewer:'PDF Viewer',views:'views',
+    loading:'Loading...',error:'Error',retry:'Retry',
+    enableNotifs:'Enable Notifications',enableNotifsDesc:'Tap to get instant alerts',
+    changePwd:'Change Password',newPwd:'New Password',
+    online:'Online now',offline:'Offline',
+    docChannels:'Lecture Channels',repChannels:'Rep Channels',generalChannels:'General',
+    postAnn:'Post',
+    statsTitle:'Department Statistics',
+  }
+};
+
+/* ══════════════════════════════════════════════
+   CONTEXT
+══════════════════════════════════════════════ */
+const Ctx = createContext(null);
+const useApp = () => useContext(Ctx);
+
+/* ══════════════════════════════════════════════
+   API HELPER
+══════════════════════════════════════════════ */
+const API = {
+  async call(method, path, body=null, isForm=false) {
+    const opts = { method, headers:{} };
+    if (body) {
+      if (isForm) { opts.body = body; }
+      else { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+    }
+    const res = await fetch(path, opts);
+    if (res.status === 401) { window.location.reload(); return null; }
+    return res.json();
+  },
+  get: (p)    => API.call('GET', p),
+  post: (p,b) => API.call('POST', p, b),
+  patch: (p,b)=> API.call('PATCH', p, b),
+  del: (p)    => API.call('DELETE', p),
+  postForm: (p,f) => API.call('POST', p, f, true),
+};
+
+/* ══════════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════════ */
+const getRD = role => ROLES_DEF[role] || ROLES_DEF['طالب'];
+
+function timeLabel(iso, lang) {
+  if (!iso) return '';
+  const d = new Date(iso), now = new Date(), diff = now - d;
+  if (diff < 60000)    return lang==='ar'?'الآن':'now';
+  if (diff < 3600000)  return lang==='ar'?`${Math.floor(diff/60000)}د`:`${Math.floor(diff/60000)}m`;
+  if (diff < 86400000) return d.toLocaleTimeString(lang==='ar'?'ar-IQ':'en',{hour:'2-digit',minute:'2-digit'});
+  if (diff < 172800000)return lang==='ar'?'أمس':'Yesterday';
+  return d.toLocaleDateString(lang==='ar'?'ar-IQ':'en',{month:'short',day:'numeric'});
+}
+
+const inits = nm => (nm||'').trim().split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
+
+/* ══════════════════════════════════════════════
+   AVATAR
+══════════════════════════════════════════════ */
+function Avatar({user,size=40,showDot=false}) {
+  const rd = user ? getRD(user.role) : {clr:'#888'};
+  return (
+    <div className="avatar" style={{width:size,height:size,
+      background:`linear-gradient(135deg,${rd.clr}28,${rd.clr}12)`,
+      border:`2px solid ${rd.clr}30`,fontSize:size*.3,color:rd.clr}}>
+      {user?.photo_url
+        ? <img src={user.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
+        : inits(user?.name_ar||user?.name||'')
+      }
+      {showDot && user?.online && <div className="online-dot"/>}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   CHANNEL AVATAR
+══════════════════════════════════════════════ */
+function ChAvatar({ch,size=46}) {
+  return (
+    <div style={{width:size,height:size,borderRadius:ch.ch_type==='ann'?16:'50%',
+      background:`${ch.color||'#555'}18`,border:`2px solid ${ch.color||'#555'}30`,
+      display:'flex',alignItems:'center',justifyContent:'center',
+      fontSize:size*.38,flexShrink:0,overflow:'hidden'}}>
+      {ch.photo_url
+        ? <img src={ch.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+        : (ch.icon||'💬')
+      }
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ROLE PILL
+══════════════════════════════════════════════ */
+function Pill({role}) {
+  const rd = getRD(role);
+  return <span className="pill" style={{background:`${rd.clr}15`,color:rd.clr,border:`1px solid ${rd.clr}25`}}>{rd.icon} {role}</span>;
+}
+
+/* ══════════════════════════════════════════════
+   TOGGLE
+══════════════════════════════════════════════ */
+function Toggle({on,onChange,color='#0066cc'}) {
+  return (
+    <button className="toggle" style={{background:on?color:'#888'}} onClick={()=>onChange(!on)}>
+      <div className="toggle-dot" style={{transform:`translateX(${on?'22px':'3px'})`}}/>
+    </button>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   iOS NOTIFICATION BANNER
+══════════════════════════════════════════════ */
+function NotifBanner({notif,onDismiss}) {
+  const {lang,t} = useApp();
+  const [out,setOut] = useState(false);
+  useEffect(()=>{
+    const t1=setTimeout(()=>setOut(true),4500);
+    const t2=setTimeout(onDismiss,5100);
+    return ()=>{clearTimeout(t1);clearTimeout(t2)};
+  },[notif.id]);
+  const title = lang==='ar'?(notif.title_ar||notif.title):notif.title_en||notif.title;
+  const body  = lang==='ar'?(notif.body_ar||notif.body):notif.body_en||notif.body;
+  return (
+    <div className="notif-banner" onClick={()=>{setOut(true);setTimeout(onDismiss,500);}}>
+      <div className="notif-inner" style={{animation:out?'iosOut .5s cubic-bezier(.16,1,.3,1) forwards':'iosIn .55s cubic-bezier(.16,1,.3,1)'}}>
+        <div className="notif-app-icon">🧬</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+            <span style={{fontSize:'.62rem',fontWeight:800,color:'var(--text3)',letterSpacing:'.1em',textTransform:'uppercase'}}>UNIPORTAL</span>
+            <span style={{fontSize:'.62rem',color:'var(--text3)'}}>{t.now}</span>
+          </div>
+          <div style={{fontWeight:800,fontSize:'.91rem',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{title}</div>
+          <div style={{fontSize:'.77rem',color:'var(--text2)',marginTop:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{body}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   PDF VIEWER (Full screen)
+══════════════════════════════════════════════ */
+function PDFViewer({filename,onClose}) {
+  const {t,lang} = useApp();
+  const [page,setPage] = useState(1);
+  const total = 8;
+  const cols = ['#00d4ff','#22c55e','#a855f7','#f59e0b','#ef4444'];
+
+  return (
+    <div id="pdf-overlay">
+      <div style={{background:'var(--bg2)',borderBottom:'1px solid var(--border)',padding:'10px 16px',
+        display:'flex',alignItems:'center',gap:10}}>
+        <button className="btn-icon btn" onClick={onClose}>✕</button>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:'.9rem',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{filename}</div>
+          <div style={{fontSize:'.72rem',color:'var(--text2)'}}>{t.pdfViewer} · {t.page} {page} {t.of} {total}</div>
+        </div>
+        <a href="#" className="btn btn-sec btn-sm">⬇️ {t.download}</a>
+      </div>
+
+      <div style={{flex:1,overflow:'auto',padding:'1rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'.75rem',background:'#111'}}>
+        <div className="pdf-page-inner" style={{padding:'0'}}>
+          <svg viewBox="0 0 600 800" style={{width:'100%',display:'block'}}>
+            <rect width="600" height="800" fill="#fafafa"/>
+            {Array.from({length:18},(_,i)=>(
+              <line key={i} x1="48" y1={120+i*34} x2="552" y2={120+i*34} stroke="#e8ecf0" strokeWidth="1"/>
+            ))}
+            <rect x="48" y="38" width="504" height="52" rx="6" fill="#eef2f8"/>
+            <rect x="48" y="38" width="6" height="52" rx="3" fill="#0055cc"/>
+            <text x="68" y="62" fontSize="14" fontWeight="bold" fill="#1a2840" fontFamily="Arial">
+              {filename.replace(/\.pdf$/i,'').replace(/_/g,' ').slice(0,48)}
+            </text>
+            <text x="68" y="80" fontSize="10" fill="#6a8aaa" fontFamily="Arial">
+              Page {page} of {total} · Life Sciences Dept. · UniPortal
+            </text>
+            {/* Microscopy circle */}
+            <g transform="translate(430,145)">
+              <circle cx="72" cy="72" r="68" fill="none" stroke="#dde8f4" strokeWidth="2"/>
+              <circle cx="72" cy="72" r="63" fill="#f8fafc"/>
+              {[[40,55,22,16],[75,40,18,24],[110,65,26,18],[55,95,20,28],[95,90,24,16]].map(([cx,cy,rx,ry],i)=>(
+                <g key={i}>
+                  <ellipse cx={cx} cy={cy} rx={rx*.7} ry={ry*.7} fill={`${cols[i%5]}22`} stroke={cols[i%5]} strokeWidth="1" opacity=".7"/>
+                  <circle cx={cx} cy={cy} r={Math.min(rx,ry)*.22} fill={`${cols[i%5]}44`}/>
+                </g>
+              ))}
+              <text x="72" y="143" fontSize="7" textAnchor="middle" fill="#9ab0c8" fontFamily="monospace">×400 BF</text>
+            </g>
+            {Array.from({length:5},(_,i)=>(
+              <rect key={i} x="48" y={130+i*34} width={260+Math.sin(i*1.7)*60} height="10" rx="5" fill="#d8e4f0"/>
+            ))}
+            {Array.from({length:4},(_,i)=>(
+              <rect key={i} x="48" y={320+i*28} width={360+Math.cos(i*2.1)*50} height="9" rx="4" fill="#e0eaf4"/>
+            ))}
+            {Array.from({length:3},(_,i)=>(
+              <g key={i}>
+                <circle cx="58" cy={465+i*30} r="4" fill="#0055cc" opacity=".7"/>
+                <rect x="72" y={458+i*30} width={220+i*28} height="9" rx="4" fill="#d8e4f0"/>
+              </g>
+            ))}
+            <line x1="48" y1="760" x2="552" y2="760" stroke="#e0e8f0" strokeWidth="1"/>
+            <text x="48" y="778" fontSize="9" fill="#9ab0c8" fontFamily="Arial">Life Sciences · UniPortal v2.0</text>
+            <text x="552" y="778" fontSize="9" fill="#9ab0c8" fontFamily="Arial" textAnchor="end">{page}/{total}</text>
+          </svg>
+        </div>
+      </div>
+
+      <div style={{background:'var(--bg2)',borderTop:'1px solid var(--border)',padding:'10px 16px',
+        display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+        <button className="btn btn-sec btn-sm" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>
+          {lang==='ar'?'◀ السابق':'◀ Prev'}
+        </button>
+        <div style={{display:'flex',gap:5}}>
+          {Array.from({length:total},(_,i)=>(
+            <button key={i+1} onClick={()=>setPage(i+1)}
+              style={{width:26,height:26,borderRadius:'50%',border:'none',cursor:'pointer',fontWeight:700,fontSize:'.78rem',
+                background:i+1===page?'var(--accent)':'transparent',
+                color:i+1===page?'#fff':'var(--text2)',transition:'all .15s'}}>
+              {i+1}
+            </button>
+          ))}
+        </div>
+        <button className="btn btn-sec btn-sm" disabled={page>=total} onClick={()=>setPage(p=>p+1)}>
+          {lang==='ar'?'التالي ▶':'Next ▶'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   MESSAGE BUBBLE
+══════════════════════════════════════════════ */
+function MsgBubble({msg,myUser}) {
+  const {lang,t} = useApp();
+  const [pdfOpen,setPdfOpen] = useState(false);
+  const [imgFull,setImgFull] = useState(false);
+  const mine = msg.sender_id === myUser.id;
+  const text  = msg.text || '';
+
+  if (msg.msg_type === 'sys') return (
+    <div style={{textAlign:'center',padding:'.3rem 0',margin:'.2rem 0'}}>
+      <span style={{background:'var(--hov)',color:'var(--text2)',fontSize:'.73rem',padding:'.2rem .9rem',borderRadius:99}}>{text}</span>
+    </div>
+  );
+
+  const bubbleContent = () => {
+    if (msg.msg_type === 'txt')  return <p style={{whiteSpace:'pre-wrap',fontSize:'.9rem',lineHeight:1.65}}>{text}</p>;
+    if (msg.msg_type === 'pdf')  return (
+      <>
+        <div style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',
+          background:mine?'rgba(255,255,255,.1)':'rgba(0,100,200,.07)',
+          border:`1px solid ${mine?'rgba(255,255,255,.15)':'rgba(0,100,200,.15)'}`,
+          borderRadius:12,cursor:'pointer',maxWidth:260}}
+          onClick={()=>setPdfOpen(true)}>
+          <div style={{width:42,height:50,borderRadius:8,background:'rgba(220,50,50,.18)',
+            border:'1px solid rgba(220,50,50,.3)',display:'flex',alignItems:'center',
+            justifyContent:'center',fontSize:'1.4rem',flexShrink:0}}>📄</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:'.82rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{msg.file_name}</div>
+            <div style={{fontSize:'.71rem',color:mine?'rgba(255,255,255,.6)':'var(--text2)',marginTop:3}}>PDF · {t.download}</div>
+          </div>
+        </div>
+        {pdfOpen && <PDFViewer filename={msg.file_name} onClose={()=>setPdfOpen(false)}/>}
+      </>
+    );
+    if (msg.msg_type === 'img')  return (
+      <>
+        <div style={{borderRadius:10,overflow:'hidden',cursor:'zoom-in',maxWidth:240,
+          border:'1px solid var(--border)'}} onClick={()=>setImgFull(true)}>
+          {msg.file_path
+            ? <img src={msg.file_path} alt="" style={{width:'100%',display:'block',maxHeight:240,objectFit:'cover'}}/>
+            : (
+              <svg viewBox="0 0 300 200" style={{width:'100%',display:'block',background:'#020810'}}>
+                <rect width="300" height="200" fill="#020a1a"/>
+                {[[40,75,30,22,'#00d4ff'],[110,55,24,32,'#22c55e'],[195,90,36,24,'#a855f7'],
+                  [95,145,28,36,'#00d4ff'],[230,155,22,26,'#f59e0b']].map(([cx,cy,rx,ry,c],i)=>(
+                  <g key={i}>
+                    <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`${c}18`} stroke={c} strokeWidth="1.2" opacity=".7"/>
+                    <circle cx={cx} cy={cy} r={rx*.3} fill={`${c}28`} stroke={c} strokeWidth=".7" opacity=".8"/>
+                  </g>
+                ))}
+              </svg>
+            )
+          }
+        </div>
+        {imgFull && (
+          <div id="lightbox" onClick={()=>setImgFull(false)}>
+            {msg.file_path
+              ? <img src={msg.file_path} alt="" style={{maxWidth:'90vw',maxHeight:'90vh',borderRadius:12,objectFit:'contain'}}/>
+              : <svg viewBox="0 0 600 400" style={{width:'min(90vw,600px)',borderRadius:12}}>
+                  <rect width="600" height="400" fill="#020a1a"/>
+                  {[[80,130,55,42,'#00d4ff'],[200,100,44,58,'#22c55e'],[340,160,65,46,'#a855f7'],
+                    [470,230,38,48,'#00d4ff'],[150,280,42,56,'#22c55e']].map(([cx,cy,rx,ry,c],i)=>(
+                    <g key={i}><ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`${c}14`} stroke={c} strokeWidth="1.5" opacity=".7"/>
+                    <circle cx={cx} cy={cy} r={rx*.3} fill={`${c}22`} stroke={c} strokeWidth="1" opacity=".8"/></g>
+                  ))}
+                </svg>
+            }
+          </div>
+        )}
+      </>
+    );
+    if (msg.msg_type === 'lnk')  {
+      const dom = (msg.link_url||'').replace(/https?:\/\//,'').split('/')[0];
+      return (
+        <a href={msg.link_url} target="_blank" rel="noopener"
+          style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',
+            background:mine?'rgba(255,255,255,.1)':'rgba(0,100,200,.07)',
+            border:`1px solid ${mine?'rgba(255,255,255,.15)':'rgba(0,100,200,.15)'}`,
+            borderRadius:12,textDecoration:'none',maxWidth:260,color:'inherit'}}>
+          <div style={{width:36,height:36,borderRadius:10,background:'rgba(0,150,200,.2)',
+            display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.05rem',flexShrink:0}}>🔗</div>
+          <div style={{flex:1,minWidth:0}}>
+            {text && <div style={{fontSize:'.82rem',lineHeight:1.3,marginBottom:2}}>{text}</div>}
+            <div style={{fontSize:'.75rem',color:'var(--accent)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dom}</div>
+          </div>
+          <span style={{color:'var(--text3)',fontSize:'.85rem'}}>↗</span>
+        </a>
+      );
+    }
+    return null;
+  };
+
+  const sender = msg.sender_name;
+  const rd = msg.sender_role ? getRD(msg.sender_role) : null;
+
+  return (
+    <div className={`msg-wrap ${mine?'msg-mine':''}`}>
+      {!mine && (
+        <div style={{width:30,height:30,borderRadius:'50%',
+          background:`${rd?.clr||'#888'}20`,border:`1.5px solid ${rd?.clr||'#888'}30`,
+          display:'flex',alignItems:'center',justifyContent:'center',
+          fontSize:'.7rem',fontWeight:900,color:rd?.clr||'#888',flexShrink:0}}>
+          {inits(sender||'')}
+        </div>
+      )}
+      <div style={{maxWidth:'72%',display:'flex',flexDirection:'column',alignItems:mine?'flex-end':'flex-start'}}>
+        {!mine && sender && (
+          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3}}>
+            <span style={{fontSize:'.76rem',fontWeight:800,color:rd?.clr||'var(--text2)'}}>
+              {sender.split(' ')[0]}
+            </span>
+            {rd && <Pill role={msg.sender_role}/>}
+          </div>
+        )}
+        <div className={`bubble ${mine?'bubble-mine':'bubble-other'}`}>
+          {bubbleContent()}
+        </div>
+        <div style={{fontSize:'.66rem',color:'var(--text3)',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
+          {timeLabel(msg.created_at, lang)}
+          {mine && <span style={{fontSize:'.8rem'}}>✓</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   CHAT WINDOW
+══════════════════════════════════════════════ */
+function ChatWindow({ch,onBack,isDesktop}) {
+  const {myUser,t,lang,pushNotif} = useApp();
+  const [msgs,setMsgs] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [txt,setTxt] = useState('');
+  const [pdfName,setPdfName] = useState(null);
+  const [linkMode,setLinkMode] = useState(false);
+  const [linkUrl,setLinkUrl] = useState('');
+  const [attachOpen,setAttachOpen] = useState(false);
+  const [imgFile,setImgFile] = useState(null);
+  const bottomRef = useRef();
+  const fileRef   = useRef();
+  const imgRef    = useRef();
+  const canWrite  = ch.can_write;
+
+  useEffect(()=>{
+    setLoading(true);
+    API.get(`/api/channels/${ch.ch_key}/messages`).then(data=>{
+      if(data) setMsgs(data.messages||[]);
+      setLoading(false);
+    });
+  },[ch.ch_key]);
+
+  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:'smooth'}); },[msgs.length]);
+
+  const doSend = async () => {
+    const fd = new FormData();
+    if (txt.trim()) fd.append('text', txt.trim());
+    if (linkMode && linkUrl.trim()) fd.append('link_url', linkUrl.trim());
+    if (pdfName && fileRef.current?.files[0]) fd.append('file', fileRef.current.files[0]);
+    if (imgFile && imgRef.current?.files[0]) fd.append('file', imgRef.current.files[0]);
+    if (!txt.trim() && !linkUrl.trim() && !pdfName && !imgFile) return;
+    const data = await API.postForm(`/api/channels/${ch.ch_key}/messages`, fd);
+    if (data?.ok) {
+      setMsgs(m=>[...m,data.message]);
+      setTxt(''); setLinkUrl(''); setLinkMode(false); setPdfName(null); setImgFile(null);
+      setAttachOpen(false);
+      const nm = lang==='ar'?(ch.name_ar||ch.name):ch.name_en||ch.name_ar||'';
+      pushNotif({title_ar:`رسالة في ${nm}`,title_en:`Message in ${nm}`,body_ar:txt.slice(0,60)||'📎',body_en:txt.slice(0,60)||'📎'});
+    }
+  };
+
+  const chName = lang==='ar'?(ch.name_ar||ch.name_en):(ch.name_en||ch.name_ar||'');
+
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}}>
+      {/* Header */}
+      <div style={{height:56,minHeight:56,display:'flex',alignItems:'center',gap:10,
+        padding:'0 12px',background:'var(--nav-bg)',borderBottom:'1px solid var(--border)',
+        zIndex:5,backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
+        {!isDesktop && <button className="btn btn-icon" onClick={onBack} style={{fontSize:'1.2rem'}}>←</button>}
+        <ChAvatar ch={ch} size={38}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:800,fontSize:'.92rem',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{chName}</div>
+          <div style={{fontSize:'.71rem',color:'var(--text2)'}}>{ch.desc_ar||ch.desc_en}</div>
+        </div>
+        <button className="btn btn-icon">🔍</button>
+      </div>
+
+      {/* Messages */}
+      <div style={{flex:1,overflowY:'auto',padding:'12px 14px 8px',display:'flex',flexDirection:'column'}}>
+        {loading && <div style={{textAlign:'center',padding:'2rem',color:'var(--text3)'}}><span className="spin">⟳</span> {t.loading}</div>}
+        {!loading && msgs.length===0 && (
+          <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,color:'var(--text3)',padding:'2rem'}}>
+            <ChAvatar ch={ch} size={64}/>
+            <div style={{fontWeight:700,color:'var(--text2)'}}>{chName}</div>
+            <div style={{fontSize:'.8rem',textAlign:'center',maxWidth:220,lineHeight:1.6}}>{ch.desc_ar||ch.desc_en}</div>
+            {!canWrite && <div style={{fontSize:'.78rem',color:'var(--text3)'}}>🔒 {t.readOnlyNote}</div>}
+          </div>
+        )}
+        {msgs.map((m,i)=><MsgBubble key={m.id||i} msg={m} myUser={myUser}/>)}
+        <div ref={bottomRef}/>
+      </div>
+
+      {/* Compose */}
+      {canWrite ? (
+        <div style={{background:'var(--nav-bg)',borderTop:'1px solid var(--border)',padding:'10px 12px',backdropFilter:'blur(20px)'}}>
+          {linkMode && (
+            <div style={{display:'flex',gap:8,marginBottom:8,alignItems:'center'}}>
+              <input className="inp" placeholder="https://..." dir="ltr" value={linkUrl}
+                onChange={e=>setLinkUrl(e.target.value)} style={{flex:1,fontSize:'.85rem'}}/>
+              <button className="btn btn-icon" onClick={()=>setLinkMode(false)} style={{color:'var(--red)'}}>✕</button>
+            </div>
+          )}
+          {pdfName && (
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,
+              background:'rgba(0,120,200,.07)',border:'1px solid var(--border)',borderRadius:10,padding:'7px 10px'}}>
+              <span>📄</span>
+              <span style={{flex:1,fontSize:'.82rem',color:'var(--accent)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{pdfName}</span>
+              <button className="btn btn-icon" style={{width:26,height:26,color:'var(--red)'}} onClick={()=>{setPdfName(null);fileRef.current.value=''}}>✕</button>
+            </div>
+          )}
+          {imgFile && (
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,
+              background:'rgba(34,197,94,.07)',border:'1px solid rgba(34,197,94,.2)',borderRadius:10,padding:'7px 10px'}}>
+              <span>🖼️</span>
+              <span style={{flex:1,fontSize:'.82rem',color:'var(--green)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{imgFile}</span>
+              <button className="btn btn-icon" style={{width:26,height:26,color:'var(--red)'}} onClick={()=>{setImgFile(null);imgRef.current.value=''}}>✕</button>
+            </div>
+          )}
+          <div style={{display:'flex',gap:8,alignItems:'flex-end',position:'relative'}}>
+            <div style={{position:'relative'}}>
+              <button className="btn btn-icon" style={{background:'rgba(0,180,255,.1)',color:'var(--accent)'}}
+                onClick={()=>setAttachOpen(!attachOpen)}>📎</button>
+              {attachOpen && (
+                <div id="attach-menu">
+                  <input type="file" ref={fileRef} accept=".pdf,.doc,.docx" style={{display:'none'}} onChange={e=>{if(e.target.files[0]){setPdfName(e.target.files[0].name);setAttachOpen(false);}}}/>
+                  <input type="file" ref={imgRef} accept="image/*" style={{display:'none'}} onChange={e=>{if(e.target.files[0]){setImgFile(e.target.files[0].name);setAttachOpen(false);}}}/>
+                  <button className="attach-item" onClick={()=>fileRef.current.click()}>📄 {t.pdf}</button>
+                  <button className="attach-item" onClick={()=>imgRef.current.click()}>🖼️ {t.image}</button>
+                  <button className="attach-item" onClick={()=>{setLinkMode(true);setAttachOpen(false);}}>🔗 {t.link}</button>
+                </div>
+              )}
+            </div>
+            <textarea className="inp" placeholder={t.typeMsg}
+              value={txt} onChange={e=>setTxt(e.target.value)}
+              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();}}}
+              style={{flex:1,resize:'none',minHeight:42,maxHeight:120,lineHeight:1.55,
+                borderRadius:20,padding:'.58rem 1rem',fontSize:'.9rem',direction:'auto'}}
+              rows={1}/>
+            <button className="btn btn-icon" onClick={doSend}
+              style={{background:txt.trim()||pdfName||imgFile||linkUrl.trim()?'linear-gradient(135deg,#0055cc,#0088ff)':'var(--hov)',
+                color:txt.trim()||pdfName||imgFile||linkUrl.trim()?'#fff':'var(--text3)',transition:'all .2s'}}>✈️</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{background:'var(--nav-bg)',borderTop:'1px solid var(--border)',
+          padding:'12px',textAlign:'center',color:'var(--text3)',fontSize:'.83rem'}}>
+          🔒 {t.readOnlyNote}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   CHANNEL LIST
+══════════════════════════════════════════════ */
+function ChList({channels,active,onSelect,onCreateCh}) {
+  const {myUser,t,lang,pushNotif} = useApp();
+  const [search,setSearch] = useState('');
+  const rd = getRD(myUser.role);
+  const filt = useMemo(()=>channels.filter(ch=>{
+    if(!search) return true;
+    const nm=(lang==='ar'?(ch.name_ar||ch.name_en):(ch.name_en||ch.name_ar)||'').toLowerCase();
+    return nm.includes(search.toLowerCase());
+  }),[channels,search,lang]);
+
+  const sec=(type,label)=>{
+    const list=filt.filter(c=>c.ch_type===type);
+    if(!list.length) return null;
+    return (
+      <>
+        <div style={{padding:'8px 14px 3px',fontSize:'.63rem',fontWeight:800,color:'var(--text3)',letterSpacing:'.11em',textTransform:'uppercase'}}>{label}</div>
+        {list.map(ch=>{
+          const nm=(lang==='ar'?(ch.name_ar||ch.name_en):(ch.name_en||ch.name_ar)||'').replace(/[\p{Emoji}\u{1F300}-\u{1FFFF}]/gu,'').trim();
+          return (
+            <div key={ch.ch_key||ch.id} className={`ch-row${active?.ch_key===ch.ch_key?' sel':''}`} onClick={()=>onSelect(ch)}>
+              <ChAvatar ch={ch} size={46}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:2}}>
+                  <span style={{fontWeight:700,fontSize:'.87rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,
+                    color:active?.ch_key===ch.ch_key?'var(--accent)':'var(--text)'}}>{nm}</span>
+                  {ch.last_time&&<span style={{fontSize:'.66rem',color:'var(--text3)',flexShrink:0,marginInlineStart:4}}>{timeLabel(ch.last_time,lang)}</span>}
+                </div>
+                <span style={{fontSize:'.76rem',color:'var(--text2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'block'}}>
+                  {ch.last_msg||(lang==='ar'?(ch.desc_ar||ch.desc_en):(ch.desc_en||ch.desc_ar)||'').slice(0,40)}
+                </span>
+              </div>
+              {ch.unread>0&&<div style={{background:'var(--accent)',color:'#000',borderRadius:99,minWidth:18,height:18,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'.62rem',fontWeight:900,padding:'0 4px'}}>{ch.unread}</div>}
+            </div>
+          );
+        })}
+      </>
+    );
+  };
+
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',background:'var(--sidebar)'}}>
+      <div style={{padding:'12px 12px 8px',borderBottom:'1px solid var(--border)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+          <span style={{fontWeight:900,fontSize:'1.1rem',background:'linear-gradient(90deg,var(--accent),var(--green))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
+            🧬 {t.app}
+          </span>
+          <div style={{display:'flex',gap:4}}>
+            {rd.createCh && <button className="btn btn-icon" style={{background:'rgba(0,180,255,.1)',color:'var(--accent)'}} onClick={onCreateCh}>✏️</button>}
+          </div>
+        </div>
+        <input className="inp" placeholder={`🔍 ${t.searchCh}`} value={search} onChange={e=>setSearch(e.target.value)}
+          style={{fontSize:'.84rem',borderRadius:14,padding:'.5rem .9rem'}}/>
+      </div>
+      <div style={{padding:'8px 12px',borderBottom:'1px solid rgba(255,255,255,.04)',display:'flex',alignItems:'center',gap:9}}>
+        <Avatar user={myUser} size={36} showDot/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:'.83rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            {lang==='ar'?(myUser.name_ar||myUser.name_en):(myUser.name_en||myUser.name_ar)}
+          </div>
+          <Pill role={myUser.role}/>
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:'auto'}}>
+        {sec('ann',lang==='ar'?'📢 إعلانات':'📢 General')}
+        {sec('doc',lang==='ar'?'🔬 قنوات الدكاتره':'🔬 Lecture Channels')}
+        {sec('rep',lang==='ar'?'📣 قنوات الممثلين':'📣 Rep Channels')}
+        {filt.length===0&&<div style={{textAlign:'center',padding:'3rem 1rem',color:'var(--text3)',fontSize:'.85rem'}}>{t.noChannels}</div>}
+        <div style={{height:16}}/>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ANNOUNCEMENT CARD
+══════════════════════════════════════════════ */
+function AnnCard({ann,onPdfOpen,onDelete,canDelete,canPin,onPin}) {
+  const {lang,t} = useApp();
+  const title   = lang==='ar'?(ann.title_ar||ann.title_en):(ann.title_en||ann.title_ar)||'';
+  const content = lang==='ar'?(ann.content_ar||ann.content_en):(ann.content_en||ann.content_ar)||'';
+
+  return (
+    <div className="ann-card">
+      {ann.pinned && (
+        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8,fontSize:'.74rem',color:'var(--yellow)',fontWeight:700}}>
+          📌 {t.pinned}
+        </div>
+      )}
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:'.85rem'}}>
+        <div style={{width:44,height:44,borderRadius:14,flexShrink:0,
+          background:`${ann.color||'#0066cc'}18`,border:`1px solid ${ann.color||'#0066cc'}28`,
+          display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.4rem'}}>
+          {ann.emoji||'📢'}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:800,fontSize:'.97rem',lineHeight:1.3}}>{title}</div>
+          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
+            <span style={{fontSize:'.73rem',color:'var(--text2)'}}>{ann.author_name}</span>
+            <span style={{fontSize:'.7rem',color:'var(--text3)'}}>· {timeLabel(ann.created_at,lang)}</span>
+            <span style={{fontSize:'.7rem',color:'var(--text3)'}}>· 👁 {ann.views}</span>
+          </div>
+        </div>
+      </div>
+      <p style={{color:'var(--text2)',lineHeight:1.75,fontSize:'.88rem',marginBottom:'.85rem',whiteSpace:'pre-wrap'}}>{content}</p>
+      {ann.file_name && (
+        <div style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',
+          background:'var(--hov)',border:'1px solid var(--border)',
+          borderRadius:12,cursor:'pointer',marginBottom:'.6rem'}}
+          onClick={()=>onPdfOpen(ann.file_name)}>
+          <span style={{fontSize:'1.3rem'}}>📄</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:'.84rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ann.file_name}</div>
+            <div style={{fontSize:'.71rem',color:'var(--text2)',marginTop:2}}>PDF · {t.download}</div>
+          </div>
+          <span style={{color:'var(--accent)',fontWeight:700}}>⬇️</span>
+        </div>
+      )}
+      {ann.link_url && (
+        <a href={ann.link_url} target="_blank" rel="noopener"
+          style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',
+            background:'var(--hov)',border:'1px solid var(--border)',
+            borderRadius:12,textDecoration:'none',color:'inherit',marginBottom:'.6rem'}}>
+          <span style={{fontSize:'1.3rem'}}>🔗</span>
+          <div style={{flex:1,color:'var(--accent)',fontSize:'.85rem',fontWeight:700}}>{ann.link_label||ann.link_url}</div>
+          <span style={{color:'var(--text3)',fontSize:'.85rem'}}>↗</span>
+        </a>
+      )}
+      {(canDelete||canPin) && (
+        <div style={{display:'flex',gap:8,marginTop:'.75rem',paddingTop:'.75rem',borderTop:'1px solid var(--border2)'}}>
+          {canPin && <button className="btn btn-sec btn-sm" onClick={()=>onPin(ann.id)}>{ann.pinned?`📌 ${t.unpin}`:`📌 ${t.pin}`}</button>}
+          {canDelete && <button className="btn btn-danger btn-sm" onClick={()=>onDelete(ann.id)}>🗑️</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ANNOUNCEMENTS VIEW
+══════════════════════════════════════════════ */
+function AnnsView() {
+  const {myUser,t,lang,pushNotif} = useApp();
+  const [anns,setAnns] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [compose,setCompose] = useState(false);
+  const [pdfFile,setPdfFile] = useState(null);
+  const [form,setForm] = useState({title_ar:'',content_ar:'',pinned:false,emoji:'📢',color:'#0066cc'});
+  const rd = getRD(myUser.role);
+  const fileRef = useRef();
+
+  useEffect(()=>{
+    API.get('/api/announcements').then(data=>{ if(data){setAnns(data);setLoading(false);} });
+  },[]);
+
+  const postAnn = async () => {
+    const fd = new FormData();
+    Object.entries(form).forEach(([k,v])=>fd.append(k,v));
+    if(fileRef.current?.files[0]) fd.append('file',fileRef.current.files[0]);
+    const data = await API.postForm('/api/announcements', fd);
+    if(data?.ok){
+      setAnns(a=>[data.announcement,...a]);
+      setCompose(false);
+      setForm({title_ar:'',content_ar:'',pinned:false,emoji:'📢',color:'#0066cc'});
+      pushNotif({title_ar:form.title_ar,title_en:form.title_ar,body_ar:form.content_ar?.slice(0,60),body_en:form.content_ar?.slice(0,60)});
+    }
+  };
+
+  const deleteAnn = async (id) => {
+    if(!confirm(lang==='ar'?'حذف الإعلان؟':'Delete this announcement?')) return;
+    await API.del(`/api/announcements/${id}`);
+    setAnns(a=>a.filter(x=>x.id!==id));
+  };
+
+  const pinAnn = async (id) => {
+    const data = await API.post(`/api/announcements/${id}/pin`);
+    if(data?.ok) setAnns(a=>a.map(x=>x.id===id?{...x,pinned:data.pinned}:x));
+  };
+
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}}>
+      <div style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',background:'var(--nav-bg)',
+        display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:'1.4rem'}}>📢</span>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:800,fontSize:'.97rem'}}>{t.anns}</div>
+          <div style={{fontSize:'.73rem',color:'var(--text2)'}}>{t.annDesc}</div>
+        </div>
+        {rd.postGen && <button className="btn btn-sec btn-sm" onClick={()=>setCompose(true)}>+ {t.newAnn}</button>}
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'1rem'}}>
+        {loading && <div style={{textAlign:'center',padding:'3rem',color:'var(--text3)'}}><span className="spin">⟳</span></div>}
+        {!loading && anns.filter(a=>a.pinned).length>0 && (
+          <div style={{fontSize:'.7rem',color:'var(--text3)',fontWeight:800,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.6rem'}}>📌 {t.pinned}</div>
+        )}
+        {anns.filter(a=>a.pinned).map(a=>(
+          <AnnCard key={a.id} ann={a} onPdfOpen={setPdfFile} onDelete={deleteAnn} onPin={pinAnn}
+            canDelete={a.author_id===myUser.id||rd.admin} canPin={rd.postGen||rd.admin}/>
+        ))}
+        {anns.filter(a=>!a.pinned).length>0 && (
+          <div style={{fontSize:'.7rem',color:'var(--text3)',fontWeight:800,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.6rem',marginTop:'.5rem'}}>
+            {lang==='ar'?'الأخيرة':'Recent'}
+          </div>
+        )}
+        {anns.filter(a=>!a.pinned).map(a=>(
+          <AnnCard key={a.id} ann={a} onPdfOpen={setPdfFile} onDelete={deleteAnn} onPin={pinAnn}
+            canDelete={a.author_id===myUser.id||rd.admin} canPin={rd.postGen||rd.admin}/>
+        ))}
+      </div>
+
+      {compose && (
+        <div className="modal-bg" onClick={()=>setCompose(false)}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()}>
+            <div className="modal-title">📢 {t.newAnn}</div>
+            <div style={{display:'flex',flexDirection:'column',gap:'.9rem',marginBottom:'1rem'}}>
+              <input className="inp-flat" placeholder={t.annTitle} value={form.title_ar} onChange={e=>setForm({...form,title_ar:e.target.value})}/>
+              <textarea className="inp-flat" placeholder={t.annContent} value={form.content_ar} onChange={e=>setForm({...form,content_ar:e.target.value})} rows={4}/>
+              <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+                <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:'.85rem',color:'var(--text2)'}}>
+                  <Toggle on={form.pinned} onChange={v=>setForm({...form,pinned:v})} color="#f59e0b"/>
+                  📌 {t.pin}
+                </label>
+                <input className="inp-flat" type="file" ref={fileRef} accept=".pdf" style={{flex:1,minWidth:100,fontSize:'.82rem'}}/>
+              </div>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-full" disabled={!form.title_ar.trim()} onClick={postAnn}>{t.postAnn}</button>
+              <button className="btn btn-sec" onClick={()=>setCompose(false)}>{t.cancel}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pdfFile && <PDFViewer filename={pdfFile} onClose={()=>setPdfFile(null)}/>}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   NOTIFICATIONS VIEW
+══════════════════════════════════════════════ */
+function NotifsView({refresh}) {
+  const {lang,t} = useApp();
+  const [notifs,setNotifs] = useState([]);
+  const [loading,setLoading] = useState(true);
+
+  const load = async () => {
+    const data = await API.get('/api/notifications');
+    if(data){ setNotifs(data.notifications||[]); setLoading(false); }
+  };
+  useEffect(()=>{ load(); },[refresh]);
+
+  const markAll = async () => {
+    await API.post('/api/notifications/read_all');
+    setNotifs(n=>n.map(x=>({...x,is_read:true})));
+  };
+
+  const unreadCnt = notifs.filter(n=>!n.is_read).length;
+
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}}>
+      <div style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',background:'var(--nav-bg)',
+        display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:'1.4rem'}}>🔔</span>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:800,fontSize:'.97rem'}}>{t.notifs}</div>
+          <div style={{fontSize:'.73rem',color:'var(--text2)'}}>{unreadCnt} {t.unread}</div>
+        </div>
+        {unreadCnt>0 && <button className="btn btn-sec btn-sm" onClick={markAll}>{t.markAllRead}</button>}
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'.75rem'}}>
+        {loading && <div style={{textAlign:'center',padding:'3rem',color:'var(--text3)'}}><span className="spin">⟳</span></div>}
+        {!loading && notifs.length===0 && (
+          <div style={{textAlign:'center',padding:'4rem 2rem',color:'var(--text3)'}}>
+            <div style={{fontSize:'3rem',marginBottom:'.75rem'}}>🔕</div>
+            <div style={{fontSize:'.9rem'}}>{t.noNotifs}</div>
+          </div>
+        )}
+        {notifs.map((n,i)=>{
+          const title=lang==='ar'?(n.title_ar||n.title_en):(n.title_en||n.title_ar)||'';
+          const body =lang==='ar'?(n.body_ar||n.body_en):(n.body_en||n.body_ar)||'';
+          return (
+            <div key={n.id} style={{padding:'12px 14px',borderRadius:14,marginBottom:6,cursor:'pointer',
+              background:n.is_read?'var(--card)':`rgba(0,180,255,.07)`,
+              border:`1px solid ${n.is_read?'var(--card-border)':'rgba(0,180,255,.22)'}`,
+              transition:'background .15s',animation:`slideUp .3s ease ${i*.04}s both`,position:'relative'}}
+              onClick={async()=>{ await API.post(`/api/notifications/${n.id}/read`); setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,is_read:true}:x)); }}>
+              {!n.is_read && <div className="unread-dot" style={{position:'absolute',top:14,insetInlineEnd:14}}/>}
+              <div style={{fontWeight:700,fontSize:'.88rem',marginBottom:3}}>{title}</div>
+              <div style={{color:'var(--text2)',fontSize:'.8rem',lineHeight:1.5}}>{body}</div>
+              <div style={{color:'var(--text3)',fontSize:'.72rem',marginTop:6}}>{timeLabel(n.created_at,lang)}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SETTINGS VIEW
+══════════════════════════════════════════════ */
+function SettingsView({onLogout}) {
+  const {myUser,setMyUser,dark,setDark,lang,setLang,t} = useApp();
+  const [tab,setTab] = useState('profile');
+  const [form,setForm] = useState({name_ar:myUser.name_ar||'',bio:myUser.bio||'',password:''});
+  const [saving,setSaving] = useState(false);
+  const [notifSounds,setNotifSounds] = useState(true);
+  const [notifBadges,setNotifBadges] = useState(true);
+  const rd = getRD(myUser.role);
+  const photoRef = useRef();
+
+  const saveProfile = async () => {
+    setSaving(true);
+    const data = await API.patch('/api/me', form);
+    if(data?.ok) setMyUser(data.user);
+    setSaving(false);
+    alert(lang==='ar'?'✅ تم الحفظ':'✅ Saved!');
+  };
+
+  const uploadPhoto = async (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    const fd = new FormData(); fd.append('photo', file);
+    const data = await API.postForm('/api/upload-photo', fd);
+    if(data?.ok) setMyUser(u=>({...u,photo_url:data.url}));
+  };
+
+  const TABS = [
+    {id:'profile',icon:'👤',label:t.profile},
+    {id:'appearance',icon:'🎨',label:t.theme},
+    {id:'notifs',icon:'🔔',label:t.notifs},
+    {id:'privacy',icon:'🔒',label:t.privacy},
+  ];
+
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}}>
+      <div style={{padding:'.7rem .9rem',borderBottom:'1px solid var(--border)',display:'flex',gap:6,overflowX:'auto',flexWrap:'nowrap'}}>
+        {TABS.map(tb=><button key={tb.id} className={`tab-b${tab===tb.id?' on':''}`} onClick={()=>setTab(tb.id)}>{tb.icon} {tb.label}</button>)}
+      </div>
+      <div style={{flex:1,overflowY:'auto'}}>
+
+        {tab==='profile' && (
+          <div style={{animation:'slideUp .3s ease'}}>
+            <div style={{padding:'1.8rem 1.2rem 1.2rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'1rem',
+              background:`linear-gradient(180deg,${rd.clr}12,transparent)`,borderBottom:'1px solid var(--border)'}}>
+              <div style={{position:'relative'}}>
+                <Avatar user={myUser} size={82} showDot/>
+                <input type="file" ref={photoRef} accept="image/*" style={{display:'none'}} onChange={uploadPhoto}/>
+                <button onClick={()=>photoRef.current.click()} style={{position:'absolute',bottom:2,right:2,width:28,height:28,
+                  borderRadius:'50%',background:'var(--accent)',border:`2px solid var(--bg)`,
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:'.85rem',cursor:'pointer',color:'#000'}}>✏️</button>
+              </div>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontWeight:900,fontSize:'1.1rem',marginBottom:'.3rem'}}>{lang==='ar'?myUser.name_ar:myUser.name_en||myUser.name_ar}</div>
+                <Pill role={myUser.role}/>
+                <div style={{fontSize:'.78rem',color:'var(--text2)',marginTop:'.5rem',fontFamily:'monospace'}}>{myUser.uid}</div>
+                {myUser.section_name && <div style={{fontSize:'.78rem',color:'var(--text2)',marginTop:'.2rem'}}>{myUser.section_name}</div>}
+              </div>
+            </div>
+            <div style={{padding:'1.2rem',display:'flex',flexDirection:'column',gap:'.9rem'}}>
+              {[['name_ar',t.name],['bio',t.bio]].map(([k,lb])=>(
+                <div key={k}>
+                  <label style={{fontSize:'.79rem',color:'var(--text2)',display:'block',marginBottom:5,fontWeight:700}}>{lb}</label>
+                  <input className="inp-flat" value={form[k]||''} onChange={e=>setForm({...form,[k]:e.target.value})}/>
+                </div>
+              ))}
+              <div>
+                <label style={{fontSize:'.79rem',color:'var(--text2)',display:'block',marginBottom:5,fontWeight:700}}>{t.changePwd}</label>
+                <input className="inp-flat" type="password" placeholder={t.newPwd} value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/>
+              </div>
+              <button className="btn btn-primary btn-full" disabled={saving} onClick={saveProfile}>
+                {saving?<span className="spin">⟳</span>:t.saveChanges}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tab==='appearance' && (
+          <div style={{padding:'1rem',animation:'slideUp .3s ease',display:'flex',flexDirection:'column',gap:'.75rem'}}>
+            {[[dark,setDark,dark?'🌙':'☀️',dark?t.dark:t.light,dark?'Bioluminescent':'Clean Light'],
+              [lang==='ar',()=>{},'🌍',t.language,lang==='ar'?'العربية':'English']
+            ].map(([val,fn,ic,lb,sub],i)=>(
+              <div key={i} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <span style={{fontSize:'1.4rem'}}>{ic}</span>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:'.9rem'}}>{lb}</div>
+                    <div style={{fontSize:'.75rem',color:'var(--text2)'}}>{sub}</div>
+                  </div>
+                </div>
+                {i===0
+                  ? <Toggle on={val} onChange={setDark} color="var(--accent)"/>
+                  : <button className="btn btn-sec btn-sm" onClick={()=>setLang(l=>l==='ar'?'en':'ar')}>{lang==='ar'?'English':'العربية'}</button>
+                }
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab==='notifs' && (
+          <div style={{padding:'1rem',animation:'slideUp .3s ease',display:'flex',flexDirection:'column',gap:'.75rem'}}>
+            {[[notifSounds,setNotifSounds,'🔊',t.notifSounds],[notifBadges,setNotifBadges,'🔴',t.notifBadges]].map(([v,fn,ic,lb])=>(
+              <div key={lb} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <span style={{fontSize:'1.2rem'}}>{ic}</span>
+                  <span style={{fontWeight:600,fontSize:'.9rem'}}>{lb}</span>
+                </div>
+                <Toggle on={v} onChange={fn} color="var(--accent)"/>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab==='privacy' && (
+          <div style={{padding:'1rem',animation:'slideUp .3s ease',display:'flex',flexDirection:'column',gap:'.75rem'}}>
+            {[['👁','Last Seen / آخر ظهور','Everyone'],['📸','Profile Photo','Everyone'],['🔐','Two-Factor Auth','Disabled']].map(([ic,lb,val])=>(
+              <div key={lb} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',cursor:'pointer'}}>
+                <span style={{fontSize:'1.2rem'}}>{ic}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600,fontSize:'.9rem'}}>{lb}</div>
+                  <div style={{fontSize:'.75rem',color:'var(--text2)',marginTop:1}}>{val}</div>
+                </div>
+                <span style={{color:'var(--text3)'}}>›</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{padding:'1rem 1.2rem 2rem'}}>
+          <div style={{textAlign:'center',color:'var(--text3)',fontSize:'.75rem',marginBottom:'1rem'}}>
+            UniPortal v2.0 · Life Sciences Dept. · {new Date().getFullYear()}
+          </div>
+          <button className="btn btn-danger btn-full" onClick={onLogout}>🚪 {t.logout}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ADMIN VIEW
+══════════════════════════════════════════════ */
+function AdminView() {
+  const {myUser,t,lang} = useApp();
+  const [tab,setTab] = useState('stats');
+  const [stats,setStats] = useState(null);
+  const [users,setUsers] = useState([]);
+  const [search,setSearch] = useState('');
+  const [editing,setEditing] = useState(null);
+  const [editRole,setEditRole] = useState('');
+  const [page,setPage] = useState(1);
+  const [totalPages,setTotalPages] = useState(1);
+
+  useEffect(()=>{ API.get('/api/stats').then(d=>{ if(d) setStats(d); }); },[]);
+
+  const loadUsers = async (q='',pg=1) => {
+    const data = await API.get(`/api/users?q=${encodeURIComponent(q)}&page=${pg}`);
+    if(data){ setUsers(data.users||[]); setTotalPages(data.pages||1); }
+  };
+
+  useEffect(()=>{ if(tab==='users') loadUsers(search,page); },[tab,search,page]);
+
+  const saveUser = async () => {
+    await API.patch(`/api/users/${editing.id}`,{role:editRole});
+    setEditing(null);
+    loadUsers(search,page);
+  };
+
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}}>
+      <div style={{padding:'.7rem .9rem',borderBottom:'1px solid var(--border)',display:'flex',gap:6,flexWrap:'wrap'}}>
+        {[['stats',t.statistics],['users',t.users],['sections',t.sections]].map(([id,lb])=>(
+          <button key={id} className={`tab-b${tab===id?' on':''}`} onClick={()=>setTab(id)}>{lb}</button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'1rem'}}>
+
+        {tab==='stats' && stats && (
+          <div style={{animation:'slideUp .3s ease'}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:'.9rem',marginBottom:'1.2rem'}}>
+              {[
+                {ic:'👥',lb:lang==='ar'?'المستخدمون':t.users,val:stats.total_users,c:'var(--accent)'},
+                {ic:'🟢',lb:lang==='ar'?'متصلون':t.online,val:stats.online_users,c:'var(--green)'},
+                {ic:'📢',lb:lang==='ar'?'القنوات':'Channels',val:stats.total_channels,c:'var(--purple)'},
+                {ic:'💬',lb:lang==='ar'?'الرسائل':'Messages',val:stats.total_messages,c:'var(--yellow)'},
+              ].map((s,i)=>(
+                <div key={i} className="card" style={{textAlign:'center',padding:'1.1rem',border:`1px solid ${s.c}22`,animation:`countUp .5s ease ${i*.1}s both`}}>
+                  <div style={{fontSize:'2rem'}}>{s.ic}</div>
+                  <div style={{fontSize:'1.7rem',fontWeight:900,color:s.c,marginTop:'.3rem'}}>{s.val}</div>
+                  <div style={{fontSize:'.74rem',color:'var(--text2)',marginTop:'.2rem'}}>{s.lb}</div>
+                </div>
+              ))}
+            </div>
+            {stats.by_role?.length>0 && (
+              <div className="card" style={{padding:'1.1rem'}}>
+                <div style={{fontWeight:700,fontSize:'.88rem',marginBottom:'1rem',color:'var(--accent)'}}>{lang==='ar'?'توزيع الأدوار':'Role Distribution'}</div>
+                {stats.by_role.filter(r=>r.count>0).map((r,i)=>{
+                  const rd=getRD(r.role);
+                  return (
+                    <div key={r.role} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                      <Pill role={r.role}/>
+                      <div style={{flex:1,height:8,background:'var(--border)',borderRadius:99,overflow:'hidden'}}>
+                        <div style={{width:`${stats.total_users>0?(r.count/stats.total_users)*100:0}%`,height:'100%',background:rd.clr,borderRadius:99,transition:'width .6s'}}/>
+                      </div>
+                      <span style={{fontSize:'.8rem',color:'var(--text2)',minWidth:22,fontWeight:700}}>{r.count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab==='users' && (
+          <div style={{animation:'slideUp .3s ease'}}>
+            <input className="inp-flat" placeholder={`🔍 ${t.search}`} value={search}
+              onChange={e=>{setSearch(e.target.value);setPage(1);}} style={{marginBottom:'1rem'}}/>
+            {users.map((u,i)=>{
+              const nm=lang==='ar'?(u.name_ar||u.name_en):(u.name_en||u.name_ar)||'';
+              return (
+                <div key={u.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',
+                  borderRadius:14,marginBottom:6,background:'var(--card)',border:'1px solid var(--card-border)',
+                  animation:`slideUp .3s ease ${i*.03}s both`}}>
+                  <Avatar user={u} size={40} showDot/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:'.88rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</div>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3,flexWrap:'wrap'}}>
+                      <Pill role={u.role}/>
+                      {u.section_name&&<span style={{fontSize:'.68rem',color:'var(--text2)'}}>{u.section_name}</span>}
+                      <span style={{fontSize:'.66rem',fontFamily:'monospace',color:'var(--text3)'}}>{u.uid}</span>
+                    </div>
+                  </div>
+                  {myUser.role==='رئيس' && (
+                    <button className="btn btn-sec btn-sm" onClick={()=>{setEditing(u);setEditRole(u.role);}}>✏️</button>
+                  )}
+                </div>
+              );
+            })}
+            {totalPages>1 && (
+              <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:'1rem'}}>
+                <button className="btn btn-sec btn-sm" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>◀</button>
+                <span style={{color:'var(--text2)',fontSize:'.85rem',alignSelf:'center'}}>{page}/{totalPages}</span>
+                <button className="btn btn-sec btn-sm" disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>▶</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab==='sections' && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.9rem',animation:'slideUp .3s ease'}}>
+            {stats?.by_section?.map((s,i)=>(
+              <div key={i} className="card" style={{padding:'1.1rem',textAlign:'center',animation:`countUp .5s ease ${i*.08}s both`}}>
+                <div style={{fontSize:'2rem',marginBottom:'.5rem'}}>📂</div>
+                <div style={{fontWeight:800,marginBottom:'.5rem'}}>{s.name}</div>
+                <div style={{fontSize:'1.7rem',fontWeight:900,color:'var(--accent)'}}>{s.count}</div>
+                <div style={{fontSize:'.72rem',color:'var(--text2)',marginTop:'.2rem'}}>{t.member}s</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <div className="modal-bg" onClick={()=>setEditing(null)}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()}>
+            <div className="modal-title">✏️ {t.edit}: {lang==='ar'?editing.name_ar:editing.name_en||editing.name_ar}</div>
+            <div style={{marginBottom:'1rem'}}>
+              <label style={{fontSize:'.79rem',color:'var(--text2)',display:'block',marginBottom:5,fontWeight:700}}>{t.role || 'Role'}</label>
+              <select className="inp-flat" value={editRole} onChange={e=>setEditRole(e.target.value)}>
+                {Object.keys(ROLES_DEF).map(r=><option key={r} value={r}>{ROLES_DEF[r].icon} {r}</option>)}
+              </select>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary" onClick={saveUser}>💾 {t.save}</button>
+              <button className="btn btn-sec" onClick={()=>setEditing(null)}>{t.cancel}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   CREATE CHANNEL MODAL
+══════════════════════════════════════════════ */
+function CreateChModal({onDone,onClose}) {
+  const {myUser,t,lang} = useApp();
+  const [name,setName] = useState('');
+  const [desc,setDesc] = useState('');
+  const chType = myUser.role==='دكتور'?'doc':'rep';
+  const photoRef = useRef();
+  const [photoFile,setPhotoFile] = useState(null);
+
+  const create = async () => {
+    const data = await API.post('/api/channels',{
+      name_ar:name,name_en:name,
+      desc_ar:desc,desc_en:desc,
+    });
+    if(data?.ok){
+      // upload photo if any
+      if(photoFile){
+        const fd=new FormData();fd.append('photo',photoFile);fd.append('ch_key',data.channel.ch_key);
+        await API.postForm('/api/upload-channel-photo',fd);
+      }
+      onDone(data.channel);
+    }
+  };
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal-box" onClick={e=>e.stopPropagation()}>
+        <div className="modal-title">✨ {t.createChannel}</div>
+        <div style={{background:'rgba(0,200,255,.07)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',marginBottom:'1rem',fontSize:'.82rem',color:'var(--text2)'}}>
+          {chType==='doc'
+            ? '🔬 قناة محاضرات – للقراءة فقط من قِبل طلابك'
+            : '📣 قناة ممثل – إعلانات لطلاب شعبتك'
+          }
+          <br/>⚠️ {lang==='ar'?'لا يستطيع رئيس القسم أو المقرر رؤية هذه القناة':'Dept. Head & Coordinator cannot see this channel'}
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:'.9rem',marginBottom:'1.2rem'}}>
+          <input className="inp-flat" placeholder={t.chName} value={name} onChange={e=>setName(e.target.value)}/>
+          <input className="inp-flat" placeholder={t.chDesc} value={desc} onChange={e=>setDesc(e.target.value)}/>
+          <div>
+            <label style={{fontSize:'.79rem',color:'var(--text2)',display:'block',marginBottom:5,fontWeight:700}}>
+              {lang==='ar'?'صورة القناة (اختياري)':'Channel Photo (optional)'}
+            </label>
+            <input className="inp-flat" type="file" accept="image/*" onChange={e=>setPhotoFile(e.target.files[0]||null)}/>
+          </div>
+        </div>
+        <button className="btn btn-primary btn-full" disabled={!name.trim()} onClick={create}>{t.createChannel}</button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════════════ */
+function LoginScreen({onLogin}) {
+  const {t,lang,dark} = useApp();
+  const [uid,setUid] = useState('');
+  const [pwd,setPwd] = useState('');
+  const [err,setErr] = useState('');
+  const [loading,setLoading] = useState(false);
+
+  const doLogin = async (uid,pwd) => {
+    setLoading(true);
+    const data = await API.post('/api/login',{uid,password:pwd});
+    setLoading(false);
+    if(data?.ok) onLogin(data.user);
+    else setErr(data?.error||t.error);
+  };
+
+  const DEMO_GROUPS = [
+    {lb:lang==='ar'?'الإدارة':'Admin',   ids:[{uid:'HEAD001',role:'رئيس'},{uid:'COORD001',role:'مقرر'}]},
+    {lb:lang==='ar'?'الدكاتره':'Doctors',ids:[{uid:'DOC001',role:'دكتور'},{uid:'DOC002',role:'دكتور'},{uid:'DOC003',role:'دكتور'}]},
+    {lb:lang==='ar'?'الممثلون':'Reps',   ids:[{uid:'REP001',role:'ممثل'},{uid:'REP002',role:'ممثل'}]},
+    {lb:lang==='ar'?'الطلاب':'Students', ids:[{uid:'STU2024001',role:'طالب'},{uid:'STU2024002',role:'طالب'},{uid:'STU2024003',role:'طالب'}]},
+  ];
+
+  return (
+    <div style={{height:'100%',overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'1.5rem 1rem',position:'relative',zIndex:1}}>
+      <div style={{width:'100%',maxWidth:430,animation:'slideUp .5s cubic-bezier(.16,1,.3,1)'}}>
+        <div style={{textAlign:'center',marginBottom:'2rem'}}>
+          <div style={{fontSize:'3.8rem',marginBottom:'.6rem',filter:'drop-shadow(0 0 24px rgba(0,180,255,.5))'}}>🧬</div>
+          <h1 style={{fontSize:'2rem',fontWeight:900,background:'linear-gradient(90deg,var(--accent),var(--green))',
+            WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>{t.app}</h1>
+          <p style={{color:'var(--text2)',fontSize:'.88rem',marginTop:'.3rem'}}>{t.dept}</p>
+        </div>
+
+        <div className="card" style={{padding:'1.7rem 1.5rem',marginBottom:'1.2rem'}}>
+          <div style={{display:'flex',flexDirection:'column',gap:'.9rem',marginBottom:'1.1rem'}}>
+            {[[uid,setUid,t.uid,'STU2024001','text'],[pwd,setPwd,t.password,'••••','password']].map(([v,fn,lb,ph,tp])=>(
+              <div key={lb}>
+                <label style={{fontSize:'.79rem',color:'var(--text2)',display:'block',marginBottom:5,fontWeight:700}}>{lb}</label>
+                <input className="inp-flat" type={tp} placeholder={ph} value={v}
+                  onChange={e=>{fn(e.target.value);setErr('');}}
+                  onKeyDown={e=>e.key==='Enter'&&doLogin(uid,pwd)}/>
+              </div>
+            ))}
+            {err && <div style={{background:'rgba(220,38,38,.1)',border:'1px solid rgba(220,38,38,.25)',color:'var(--red)',padding:'.6rem .9rem',borderRadius:10,fontSize:'.83rem'}}>{err}</div>}
+          </div>
+          <button className="btn btn-primary btn-full" onClick={()=>doLogin(uid,pwd)} disabled={loading}>
+            {loading?<span className="spin">⟳</span>:`${t.enter} →`}
+          </button>
+        </div>
+
+        <div className="card" style={{padding:'1.1rem 1rem'}}>
+          <div style={{fontSize:'.74rem',color:'var(--text2)',textAlign:'center',marginBottom:'.9rem',fontWeight:700}}>⚡ {t.quickLogin}</div>
+          {DEMO_GROUPS.map(({lb,ids})=>(
+            <div key={lb} style={{marginBottom:'.65rem'}}>
+              <div style={{fontSize:'.65rem',color:'var(--text3)',marginBottom:4,fontWeight:800,letterSpacing:'.08em',textTransform:'uppercase'}}>{lb}</div>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                {ids.map(({uid:u,role})=>{
+                  const rd=getRD(role);
+                  return (
+                    <button key={u} className="btn" style={{background:`${rd.clr}0e`,border:`1px solid ${rd.clr}22`,color:rd.clr,
+                      padding:'.38rem .8rem',fontSize:'.78rem',borderRadius:10,transition:'all .18s'}}
+                      onMouseEnter={e=>{e.currentTarget.style.background=`${rd.clr}20`;e.currentTarget.style.transform='translateY(-1px)';}}
+                      onMouseLeave={e=>{e.currentTarget.style.background=`${rd.clr}0e`;e.currentTarget.style.transform='none';}}
+                      onClick={()=>doLogin(u,'1234')}>
+                      {rd.icon} {u.includes('STU')?u.slice(-3):u.slice(0,8)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ROOT APP
+══════════════════════════════════════════════ */
+function App() {
+  const [dark,setDark_] = useState(true);
+  const [lang,setLang_] = useState('ar');
+  const [myUser,setMyUser] = useState(null);
+  const [channels,setChannels] = useState([]);
+  const [activeCh,setActiveCh] = useState(null);
+  const [navTab,setNavTab] = useState('chats');
+  const [showCreate,setShowCreate] = useState(false);
+  const [notifQ,setNotifQ] = useState([]);
+  const [notifRefresh,setNotifRefresh] = useState(0);
+  const nRef = useRef(0);
+  const [isDesktop,setIsDesktop] = useState(window.innerWidth>700);
+
+  useEffect(()=>{
+    const fn=()=>setIsDesktop(window.innerWidth>700);
+    window.addEventListener('resize',fn);return()=>window.removeEventListener('resize',fn);
+  },[]);
+
+  const setDark = (v) => {
+    setDark_(v);
+    document.body.classList.toggle('light',!v);
+  };
+  const setLang = (fn) => {
+    setLang_(fn);
+    const next = typeof fn==='function'?fn(lang):fn;
+    document.body.classList.toggle('ltr', next!=='ar');
+    document.documentElement.lang = next;
+    document.documentElement.dir  = next==='ar'?'rtl':'ltr';
+  };
+
+  const t = T[lang] || T.ar;
+
+  const pushNotif = useCallback((n) => {
+    const notif = {...n, id:++nRef.current, time:new Date().toISOString()};
+    setNotifQ(q=>[...q,notif]);
+    setNotifRefresh(r=>r+1);
+  },[]);
+
+  // Load channels when user logs in
+  const loadChannels = async () => {
+    const data = await API.get('/api/channels');
+    if(data && Array.isArray(data)) setChannels(data);
+  };
+
+  const handleLogin = (user) => {
+    setMyUser(user);
+    loadChannels();
+    // Register service worker
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  };
+
+  const handleLogout = async () => {
+    await API.post('/api/logout');
+    setMyUser(null); setChannels([]); setActiveCh(null); setNavTab('chats');
+  };
+
+  const rd = myUser ? getRD(myUser.role) : null;
+  const totalUnread = 0; // simplified
+
+  const ctx = {myUser,setMyUser,channels,setChannels,dark,setDark,lang,setLang,t,pushNotif,dir:lang==='ar'?'rtl':'ltr'};
+
+  // Nav items
+  const navItems = myUser ? [
+    {id:'chats',  icon:'💬',label:t.chats,   badge:0},
+    {id:'anns',   icon:'📢',label:t.anns,    badge:0},
+    {id:'notifs', icon:'🔔',label:t.notifs,  badge:0},
+    ...(rd?.admin?[{id:'admin',icon:'⚙️',label:t.admin,badge:0}]:[]),
+    {id:'settings',icon:'👤',label:t.settings,badge:0},
+  ] : [];
+
+  // Main content panel
+  const mainContent = () => {
+    if(navTab==='chats' && activeCh)
+      return <ChatWindow ch={activeCh} onBack={()=>setActiveCh(null)} isDesktop={isDesktop}/>;
+    if(navTab==='chats')
+      return (
+        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'1rem',color:'var(--text3)',padding:'2rem',background:'var(--bg)'}}>
+          <div style={{fontSize:'4rem',opacity:.2}}>🧬</div>
+          <div style={{fontWeight:700,color:'var(--text2)'}}>{t.selectChannel}</div>
+          <div style={{fontSize:'.8rem'}}>{t.youHave} {channels.length} {t.visibleCh}</div>
+        </div>
+      );
+    if(navTab==='anns') return <AnnsView/>;
+    if(navTab==='notifs') return <NotifsView refresh={notifRefresh}/>;
+    if(navTab==='admin' && rd?.admin) return <AdminView/>;
+    if(navTab==='settings') return <SettingsView onLogout={handleLogout}/>;
+    return null;
+  };
+
+  // Not logged in
+  if(!myUser) return (
+    <Ctx.Provider value={ctx}>
+      <div style={{height:'100vh',position:'relative',overflow:'hidden',background:'var(--bg)'}}>
+        <LoginScreen onLogin={handleLogin}/>
+      </div>
+    </Ctx.Provider>
+  );
+
+  return (
+    <Ctx.Provider value={ctx}>
+      <div id="app" style={{display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',position:'relative',background:'var(--bg)'}}>
+        {/* Notifications */}
+        {notifQ.slice(-1).map(n=>(
+          <NotifBanner key={n.id} notif={n} onDismiss={()=>setNotifQ(q=>q.filter(x=>x.id!==n.id))}/>
+        ))}
+
+        {isDesktop ? (
+          /* ══ DESKTOP LAYOUT ══ */
+          <>
+            <div id="topbar">
+              <span style={{fontWeight:900,fontSize:'.95rem',background:'linear-gradient(90deg,var(--accent),var(--green))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
+                🧬 {t.app}
+              </span>
+              <div style={{flex:1,display:'flex',gap:6,justifyContent:'center'}}>
+                {navItems.map(({id,icon,label,badge})=>(
+                  <button key={id} className={`tab-b${navTab===id?' on':''}`}
+                    style={{position:'relative'}}
+                    onClick={()=>{setNavTab(id);if(id!=='chats')setActiveCh(null);}}>
+                    {icon} {label}
+                    {badge>0&&<span className="badge" style={{top:-2,right:-2}}>{badge>99?'99+':badge}</span>}
+                  </button>
+                ))}
+              </div>
+              <Avatar user={myUser} size={30} showDot/>
+            </div>
+            <div id="main-layout">
+              <div id="sidebar">
+                <ChList channels={channels} active={activeCh}
+                  onSelect={ch=>{setActiveCh(ch);setNavTab('chats');}}
+                  onCreateCh={()=>setShowCreate(true)}/>
+              </div>
+              <div id="main-area">{mainContent()}</div>
+            </div>
+          </>
+        ) : (
+          /* ══ MOBILE LAYOUT ══ */
+          <>
+            <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',position:'relative',zIndex:1}}>
+              {navTab==='chats' && !activeCh
+                ? <ChList channels={channels} active={null}
+                    onSelect={ch=>{setActiveCh(ch);}}
+                    onCreateCh={()=>setShowCreate(true)}/>
+                : mainContent()
+              }
+            </div>
+            {!activeCh && (
+              <div id="bottom-nav">
+                {navItems.map(({id,icon,label,badge})=>(
+                  <button key={id} className={`nav-b${navTab===id?' on':''}`}
+                    onClick={()=>{setNavTab(id);if(id!=='chats')setActiveCh(null);}}>
+                    <span style={{fontSize:'1.35rem',position:'relative'}}>
+                      {icon}
+                      {badge>0&&<span className="badge">{badge>99?'99+':badge}</span>}
+                    </span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {showCreate && rd?.createCh && (
+          <CreateChModal
+            onClose={()=>setShowCreate(false)}
+            onDone={ch=>{
+              setChannels(c=>[...c,ch]);
+              setActiveCh(ch);setNavTab('chats');setShowCreate(false);
+              pushNotif({title_ar:`✨ قناة جديدة: ${ch.name_ar}`,title_en:`✨ New: ${ch.name_en||ch.name_ar}`,
+                body_ar:ch.desc_ar||'',body_en:ch.desc_en||''});
+            }}/>
+        )}
+      </div>
+    </Ctx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
+</script>
+</body>
+</html>
