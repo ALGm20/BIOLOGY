@@ -240,7 +240,8 @@ const T = {
     youHave:'لديك',visibleCh:'قناة مرئية',
     markAllRead:'قراءة الكل',unread:'غير مقروء',noNotifs:'لا توجد إشعارات',
     pdfViewer:'عارض PDF',views:'مشاهدة',
-    loading:'جاري التحميل...',error:'خطأ',retry:'إعادة المحاولة',
+    loading:'جاري التحميل...',
+    error:'خطأ في الاتصال',error:'خطأ',retry:'إعادة المحاولة',
     enableNotifs:'تفعيل الإشعارات',enableNotifsDesc:'أضغط للحصول على الإشعارات الفورية',
     changePwd:'تغيير كلمة المرور',newPwd:'كلمة المرور الجديدة',
     online:'متصل الآن',offline:'غير متصل',
@@ -274,7 +275,8 @@ const T = {
     youHave:'You have',visibleCh:'visible channels',
     markAllRead:'Mark All Read',unread:'Unread',noNotifs:'No notifications',
     pdfViewer:'PDF Viewer',views:'views',
-    loading:'Loading...',error:'Error',retry:'Retry',
+    loading:'Loading...',
+    error:'Connection error',error:'Error',retry:'Retry',
     enableNotifs:'Enable Notifications',enableNotifsDesc:'Tap to get instant alerts',
     changePwd:'Change Password',newPwd:'New Password',
     online:'Online now',offline:'Offline',
@@ -1429,20 +1431,23 @@ function LoginScreen({onLogin}) {
   const [err,setErr] = useState('');
   const [loading,setLoading] = useState(false);
 
-  const doLogin = async (uid,pwd) => {
-    setLoading(true);
-    const data = await API.post('/api/login',{uid,password:pwd});
-    setLoading(false);
-    if(data?.ok) onLogin(data.user);
-    else setErr(data?.error||t.error);
+  const doLogin = async (u, p) => {
+    const uv = u || uid; const pv = p || pwd;
+    if(!uv.trim()) { setErr(lang==='ar'?'أدخل الرقم الامتحاني':'Enter your ID'); return; }
+    if(!pv.trim()) { setErr(lang==='ar'?'أدخل كلمة المرور':'Enter password'); return; }
+    setLoading(true); setErr('');
+    try {
+      const data = await API.post('/api/login', {uid: uv.trim().toUpperCase(), password: pv});
+      setLoading(false);
+      if (data?.ok) onLogin(data.user);
+      else setErr(data?.error || (lang==='ar'?'خطأ في تسجيل الدخول':'Login failed'));
+    } catch(e) {
+      setLoading(false);
+      setErr(lang==='ar'?'تعذّر الاتصال بالخادم':'Cannot connect to server');
+    }
   };
 
-  const DEMO_GROUPS = [
-    {lb:lang==='ar'?'الإدارة':'Admin',   ids:[{uid:'HEAD001',role:'رئيس'},{uid:'COORD001',role:'مقرر'}]},
-    {lb:lang==='ar'?'الدكاتره':'Doctors',ids:[{uid:'DOC001',role:'دكتور'},{uid:'DOC002',role:'دكتور'},{uid:'DOC003',role:'دكتور'}]},
-    {lb:lang==='ar'?'الممثلون':'Reps',   ids:[{uid:'REP001',role:'ممثل'},{uid:'REP002',role:'ممثل'}]},
-    {lb:lang==='ar'?'الطلاب':'Students', ids:[{uid:'STU2024001',role:'طالب'},{uid:'STU2024002',role:'طالب'},{uid:'STU2024003',role:'طالب'}]},
-  ];
+
 
   return (
     <div style={{height:'100%',overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'1.5rem 1rem',position:'relative',zIndex:1}}>
@@ -1466,33 +1471,12 @@ function LoginScreen({onLogin}) {
             ))}
             {err && <div style={{background:'rgba(220,38,38,.1)',border:'1px solid rgba(220,38,38,.25)',color:'var(--red)',padding:'.6rem .9rem',borderRadius:10,fontSize:'.83rem'}}>{err}</div>}
           </div>
-          <button className="btn btn-primary btn-full" onClick={()=>doLogin(uid,pwd)} disabled={loading}>
+          <button className="btn btn-primary btn-full" onClick={()=>doLogin(uid,pwd)} disabled={loading||!uid.trim()||!pwd.trim()}>
             {loading?<span className="spin">⟳</span>:`${t.enter} →`}
           </button>
         </div>
 
-        <div className="card" style={{padding:'1.1rem 1rem'}}>
-          <div style={{fontSize:'.74rem',color:'var(--text2)',textAlign:'center',marginBottom:'.9rem',fontWeight:700}}>⚡ {t.quickLogin}</div>
-          {DEMO_GROUPS.map(({lb,ids})=>(
-            <div key={lb} style={{marginBottom:'.65rem'}}>
-              <div style={{fontSize:'.65rem',color:'var(--text3)',marginBottom:4,fontWeight:800,letterSpacing:'.08em',textTransform:'uppercase'}}>{lb}</div>
-              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                {ids.map(({uid:u,role})=>{
-                  const rd=getRD(role);
-                  return (
-                    <button key={u} className="btn" style={{background:`${rd.clr}0e`,border:`1px solid ${rd.clr}22`,color:rd.clr,
-                      padding:'.38rem .8rem',fontSize:'.78rem',borderRadius:10,transition:'all .18s'}}
-                      onMouseEnter={e=>{e.currentTarget.style.background=`${rd.clr}20`;e.currentTarget.style.transform='translateY(-1px)';}}
-                      onMouseLeave={e=>{e.currentTarget.style.background=`${rd.clr}0e`;e.currentTarget.style.transform='none';}}
-                      onClick={()=>doLogin(u,'1234')}>
-                      {rd.icon} {u.includes('STU')?u.slice(-3):u.slice(0,8)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+
       </div>
     </div>
   );
