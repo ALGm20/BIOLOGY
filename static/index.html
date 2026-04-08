@@ -505,7 +505,7 @@ function PDFViewer({filename,onClose}) {
 /* ══════════════════════════════════════════════
    MESSAGE BUBBLE
 ══════════════════════════════════════════════ */
-function MsgBubble({msg,myUser}) {
+function MsgBubble({msg,myUser,onDelete,onEdit}) {
   const {lang,t} = useApp();
   const [pdfOpen,setPdfOpen] = useState(false);
   const [imgFull,setImgFull] = useState(false);
@@ -621,6 +621,16 @@ function MsgBubble({msg,myUser}) {
         <div className={`bubble ${mine?'bubble-mine':'bubble-other'}`}>
           {bubbleContent()}
         </div>
+        {/* 3 dots */}
+        <button className="dots-btn" onClick={e=>{e.stopPropagation();setMenu(m=>!m);}}
+          style={{[mine?'left':'right']:4}}>⋮</button>
+        {menu&&(
+          <div className="msg-menu" ref={menuRef} style={{[mine?'right':'left']:0,top:'100%',marginTop:2,position:'absolute'}}>
+            {mine&&msg.msg_type==='txt'&&<button className="mm-item" onClick={()=>{setMenu(false);setEditing(true);}}>✏️ {lang==='ar'?'تعديل':'Edit'}</button>}
+            {mine&&<button className="mm-item del" onClick={()=>{setMenu(false);onDelete&&onDelete(msg.id);}}>🗑️ {lang==='ar'?'حذف':'Delete'}</button>}
+            <button className="mm-item" onClick={()=>setMenu(false)}>↩️ {lang==='ar'?'رد':'Reply'}</button>
+          </div>
+        )}
         <div style={{fontSize:'.66rem',color:'var(--text3)',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
           {timeLabel(msg.created_at, lang)}
           {mine && <span style={{fontSize:'.8rem'}}>✓</span>}
@@ -656,7 +666,11 @@ function ChatWindow({ch,onBack,isDesktop}) {
     });
   },[ch.ch_key]);
 
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:'smooth'}); },[msgs.length]);
+  useEffect(()=>{
+    if(msgsRef.current){
+      msgsRef.current.scrollTop=msgsRef.current.scrollHeight;
+    }
+  },[msgs.length]);
 
   const doSend = async () => {
     const fd = new FormData();
@@ -693,7 +707,7 @@ function ChatWindow({ch,onBack,isDesktop}) {
       </div>
 
       {/* Messages */}
-      <div style={{flex:1,overflowY:'auto',padding:'12px 14px 8px',display:'flex',flexDirection:'column'}}>
+      <div style={{flex:1,overflowY:'auto',padding:'12px 8px 8px',display:'flex',flexDirection:'column',gap:2}}>
         {loading && <div style={{textAlign:'center',padding:'2rem',color:'var(--text3)'}}><span className="spin">⟳</span> {t.loading}</div>}
         {!loading && msgs.length===0 && (
           <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,color:'var(--text3)',padding:'2rem'}}>
@@ -703,7 +717,7 @@ function ChatWindow({ch,onBack,isDesktop}) {
             {!canWrite && <div style={{fontSize:'.78rem',color:'var(--text3)'}}>🔒 {t.readOnlyNote}</div>}
           </div>
         )}
-        {msgs.map((m,i)=><MsgBubble key={m.id||i} msg={m} myUser={myUser}/>)}
+        {msgs.map((m,i)=><MsgBubble key={m.id||i} msg={m} myUser={myUser} onDelete={doDelete} onEdit={doEdit}/>)}
         <div ref={bottomRef}/>
       </div>
 
@@ -733,7 +747,7 @@ function ChatWindow({ch,onBack,isDesktop}) {
               <button className="btn btn-icon" style={{width:26,height:26,color:'var(--red)'}} onClick={()=>{setImgFile(null);imgRef.current.value=''}}>✕</button>
             </div>
           )}
-          <div style={{display:'flex',gap:8,alignItems:'flex-end',position:'relative'}}>
+          <div style={{display:'flex',gap:8,alignItems:'flex-end',position:'relative',direction:'ltr'}}>
             <div style={{position:'relative'}}>
               <button className="btn btn-icon" style={{background:'rgba(0,180,255,.1)',color:'var(--accent)'}}
                 onClick={()=>setAttachOpen(!attachOpen)}>📎</button>
