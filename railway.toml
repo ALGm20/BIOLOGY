@@ -1,9 +1,0 @@
-[build]
-builder = "nixpacks"
-
-[deploy]
-startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 180 --preload --access-logfile -"
-healthcheckPath = "/health"
-healthcheckTimeout = 90
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 5
