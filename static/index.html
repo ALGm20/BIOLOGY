@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#080d1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -43,7 +43,7 @@ body.light{
 body.ltr{direction:ltr}
 
 /* ── LAYOUT ── */
-#app{height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+#app{height:100vh;height:100svh;display:flex;flex-direction:column;overflow:hidden;position:relative}
 #topbar{height:52px;min-height:52px;display:flex;align-items:center;padding:0 .85rem;gap:.6rem;background:var(--nav);border-bottom:1px solid var(--border);z-index:10;backdrop-filter:blur(20px);flex-shrink:0}
 #layout{display:flex;flex:1;overflow:hidden}
 #sidebar{width:290px;min-width:260px;border-inline-end:1px solid var(--border);display:flex;flex-direction:column;background:var(--side);flex-shrink:0;transition:transform .2s}
@@ -603,7 +603,7 @@ function renderSidebar() {
   titleRow.appendChild(btns);
   header.appendChild(titleRow);
 
-  const searchInp = h('input', {class:'inp', placeholder:`🔍 ${tl.searchCh}`, style:{fontSize:'.84rem',borderRadius:'12px',padding:'.48rem .85rem'}});
+  const searchInp = h('input', {class:'inp', placeholder:`🔍 ${tl.searchCh}`, style:{fontSize:'.84rem',borderRadius:'12px',padding:'.48rem .85rem',direction:'rtl',textAlign:'right'}});
   searchInp.addEventListener('input', () => rerenderChList(searchInp.value));
   header.appendChild(searchInp);
   sidebar.appendChild(header);
@@ -777,7 +777,7 @@ function renderMsgBubble(msg, ch) {
     pdfInfo.appendChild(h('div', {style:{fontWeight:'700',fontSize:'.82rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, msg.file_name||''));
     pdfInfo.appendChild(h('div', {style:{fontSize:'.71rem',color:mine?'rgba(255,255,255,.65)':'var(--tx2)',marginTop:'3px'}}, `PDF · ${tl.download}`));
     pdfBtn.appendChild(pdfInfo);
-    pdfBtn.addEventListener('click', () => showPDFViewer(msg.file_name));
+    pdfBtn.addEventListener('click', () => showPDFViewer(msg.file_name, msg.file_path));
     bubble.appendChild(pdfBtn);
   } else if (msg.msg_type === 'img') {
     const imgWrap = h('div', {style:{borderRadius:'10px',overflow:'hidden',cursor:'zoom-in',maxWidth:'240px',border:'1px solid var(--bsoft)'}});
@@ -892,7 +892,7 @@ function renderCompose(ch, msgsArea) {
   compose.appendChild(filePrev);
 
   // Main row
-  const mainRow = h('div', {style:{display:'flex',gap:'8px',alignItems:'flex-end',position:'relative',direction:'ltr'}});
+  const mainRow = h('div', {style:{display:'flex',gap:'8px',alignItems:'flex-end',position:'relative'}});
 
   // Attach btn + menu
   const attWrap = h('div', {style:{position:'relative',flexShrink:'0'}});
@@ -924,6 +924,14 @@ function renderCompose(ch, msgsArea) {
   textarea.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();} });
   mainRow.appendChild(textarea);
 
+  const voiceBtn = h('button', {class:'ibt', style:{flexShrink:'0',color:'var(--pu)',fontSize:'1.1rem'}, title:S.lang==='ar'?'رسالة صوتية':'Voice message',
+    onClick:()=>{
+      if(!navigator.mediaDevices?.getUserMedia){alert(S.lang==='ar'?'المتصفح لا يدعم التسجيل':'Browser does not support recording');return;}
+      alert(S.lang==='ar'?'🎙️ ميزة الرسائل الصوتية قيد التطوير
+ستتوفر في التحديث القادم':'🎙️ Voice messages coming soon!');
+    }
+  }, '🎙️');
+  mainRow.appendChild(voiceBtn);
   const sendBtn = h('button', {class:'ibt', style:{flexShrink:'0',transition:'all .2s',background:'var(--hov)',color:'var(--tx3)'}}, '✈️');
 
   const updateSendBtn = () => {
@@ -965,7 +973,7 @@ function renderCompose(ch, msgsArea) {
 /* ═══════════════════════════════════════════
    PDF VIEWER
 ═══════════════════════════════════════════ */
-function showPDFViewer(filename) {
+function showPDFViewer(filename, filePath) {
   const tl = t();
   let page = 1, total = 8;
   const ov = h('div', {id:'pdf-ov'});
@@ -976,7 +984,7 @@ function showPDFViewer(filename) {
   info.appendChild(h('div', {style:{fontWeight:'700',fontSize:'.9rem',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}, filename));
   const pgInfo = h('div', {style:{fontSize:'.72rem',color:'var(--tx2)'}}, `${tl.pdfV} · ${tl.page} 1 ${tl.of} ${total}`);
   info.appendChild(pgInfo);
-  header.append(closeBtn, info, h('a', {href:'#', class:'btn btn-s', style:{fontSize:'.8rem',padding:'.38rem .8rem'}}, `⬇️ ${tl.download}`));
+  header.append(closeBtn, info, h('a', {href: filePath||'#', download: filename||'file.pdf', target: filePath?'_blank':'', class:'btn btn-s', style:{fontSize:'.8rem',padding:'.38rem .8rem'}}, `⬇️ ${tl.download}`));
   ov.appendChild(header);
 
   const content = h('div', {style:{flex:'1',overflow:'auto',padding:'1rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'.75rem',background:'#111'}});
@@ -1011,13 +1019,15 @@ function showPDFViewer(filename) {
   const nav = h('div', {style:{background:'var(--bg2)',borderTop:'1px solid var(--border)',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'center',gap:'12px',flexShrink:'0'}});
   const prevBtn = h('button', {class:'btn btn-s', style:{fontSize:'.82rem',padding:'.4rem .9rem'}, onClick:()=>{if(page>1){page--;renderPage(page);}}}, S.lang==='ar'?'◀ السابق':'◀ Prev');
   const pagesDiv = h('div', {style:{display:'flex',gap:'5px'}});
-  Array.from({length:total},(_,i)=>{
-    const pb = h('button', {style:{width:'26px',height:'26px',borderRadius:'50%',border:'none',cursor:'pointer',fontWeight:'700',fontSize:'.78rem',background:i+1===page?'var(--ac)':'transparent',color:i+1===page?'#000':'var(--tx2)',transition:'all .15s'}}, String(i+1));
-    pb.addEventListener('click', ()=>{page=i+1;renderPage(page);pagesDiv.querySelectorAll('button').forEach((b,j)=>{b.style.background=j===i?'var(--ac)':'transparent';b.style.color=j===i?'#000':'var(--tx2)';});});
+  const pageNums = S.lang==='ar' ? Array.from({length:total},(_,i)=>total-i) : Array.from({length:total},(_,i)=>i+1);
+  pageNums.forEach((pn)=>{
+    const i=pn-1;
+    const pb = h('button', {style:{width:'26px',height:'26px',borderRadius:'50%',border:'none',cursor:'pointer',fontWeight:'700',fontSize:'.78rem',background:pn===page?'var(--ac)':'transparent',color:pn===page?'#000':'var(--tx2)',transition:'all .15s'}}, String(pn));
+    pb.addEventListener('click', ()=>{page=pn;renderPage(page);pagesDiv.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='var(--tx2)';});pb.style.background='var(--ac)';pb.style.color='#000';});
     pagesDiv.appendChild(pb);
   });
   const nextBtn = h('button', {class:'btn btn-s', style:{fontSize:'.82rem',padding:'.4rem .9rem'}, onClick:()=>{if(page<total){page++;renderPage(page);}}}, S.lang==='ar'?'التالي ▶':'Next ▶');
-  nav.append(prevBtn, pagesDiv, nextBtn);
+  if(S.lang==='ar'){nav.append(nextBtn,pagesDiv,prevBtn);}else{nav.append(prevBtn,pagesDiv,nextBtn);}
   ov.appendChild(nav);
   document.body.appendChild(ov);
 }
@@ -1096,7 +1106,7 @@ function renderAnnCard(ann, reload, container) {
     fpi.appendChild(h('div',{style:{fontSize:'.71rem',color:'var(--tx2)',marginTop:'2px'}},`PDF · ${tl.download}`));
     fp.appendChild(fpi);
     fp.appendChild(h('span',{style:{color:'var(--ac)',fontWeight:'700',flexShrink:'0'}},'⬇️'));
-    fp.addEventListener('click',()=>showPDFViewer(ann.file_name));
+    fp.addEventListener('click',()=>showPDFViewer(ann.file_name, ann.file_path));
     card.appendChild(fp);
   }
   if (ann.link_url) {
@@ -1134,7 +1144,7 @@ function showNewAnnModal(reload, container) {
   const bodyTa = h('textarea',{class:'inp-f',rows:'4',placeholder:S.lang==='ar'?'محتوى الإعلان...':'Content...',style:{marginBottom:'.85rem'}});
   const pinRow = h('label',{style:{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',fontSize:'.85rem',marginBottom:'1rem'}});
   let isPinned = false;
-  const togEl = makeToggle(false,(v)=>{isPinned=v;},getComputedStyle(document.documentElement).getPropertyValue('--yl'));
+  const togEl = makeToggle(false,(v)=>{isPinned=v;},'#f59e0b');
   pinRow.append(togEl, `📌 ${tl.pin}`);
   const fileInp = h('input',{class:'inp-f',type:'file',accept:'.pdf',style:{marginBottom:'1rem',fontSize:'.82rem'}});
   const sendBtn = h('button',{class:'btn btn-p',style:{marginBottom:'.6rem'}},tl.postAnn);
@@ -1248,6 +1258,16 @@ function renderProfileTab(){
   const profileHeader=h('div',{style:{padding:'1.6rem 1.2rem 1.2rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'1rem',background:`linear-gradient(180deg,${r.clr}12,transparent)`,borderBottom:'1px solid var(--border)'}});
   const avWrap=h('div',{style:{position:'relative'}});
   avWrap.appendChild(makeAvatar(S.user,80,true));
+  const photoInput=h('input',{type:'file',accept:'image/*',style:{display:'none'}});
+  photoInput.addEventListener('change',async(e)=>{
+    const file=e.target.files[0]; if(!file)return;
+    const fd=new FormData(); fd.append('photo',file);
+    const d=await API.postF('/api/upload-photo',fd);
+    if(d?.ok){S.user=Object.assign(S.user,{photo_url:d.url});renderAll();}
+  });
+  const camBtn=h('button',{style:{position:'absolute',bottom:'2px',right:'2px',width:'26px',height:'26px',borderRadius:'50%',background:'var(--ac)',border:'2px solid var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'.8rem',cursor:'pointer',color:'#000'},onClick:()=>photoInput.click()},'✏️');
+  avWrap.appendChild(photoInput);
+  avWrap.appendChild(camBtn);
   profileHeader.appendChild(avWrap);
   const nameDiv=h('div',{style:{textAlign:'center'}});
   nameDiv.appendChild(h('div',{style:{fontWeight:'900',fontSize:'1.1rem',marginBottom:'.3rem'}},S.user?.name_ar||''));
@@ -1330,15 +1350,35 @@ function renderNotifsTab(){
 
 function renderPrivacyTab(){
   const wrap=h('div',{style:{padding:'1rem',display:'flex',flexDirection:'column',gap:'.75rem',animation:'slideUp .3s ease'}});
-  [['👁','Last Seen / آخر ظهور','Everyone'],['📸','Profile Photo','Everyone'],['🔐','Two-Factor Auth','Disabled']].forEach(([ic,lb,val])=>{
-    const row=h('div',{class:'card s-row'});
-    row.appendChild(h('span',{style:{fontSize:'1.2rem'}},ic));
-    const d2=h('div',{style:{flex:'1'}});
-    d2.appendChild(h('div',{style:{fontWeight:'600',fontSize:'.9rem'}},lb));
-    d2.appendChild(h('div',{style:{fontSize:'.75rem',color:'var(--tx2)',marginTop:'1px'}},val));
-    row.append(d2,h('span',{style:{color:'var(--tx3)'}},'›'));
-    wrap.appendChild(row);
+  const prefs=JSON.parse(localStorage.getItem('up_privacy')||'{"lastSeen":"all","photo":"all","twofa":false}');
+  const save=()=>localStorage.setItem('up_privacy',JSON.stringify(prefs));
+
+  // Last seen
+  const ls=h('div',{class:'card',style:{padding:'13px 16px'}});
+  ls.appendChild(h('div',{style:{fontWeight:'700',fontSize:'.9rem',marginBottom:'8px'}},'👁 '+(S.lang==='ar'?'آخر ظهور':'Last Seen')));
+  const lsSel=h('select',{class:'inp-f',style:{fontSize:'.85rem'}});
+  [['all',S.lang==='ar'?'الجميع':'Everyone'],['contacts',S.lang==='ar'?'القسم فقط':'Dept only'],['none',S.lang==='ar'?'لا أحد':'Nobody']].forEach(([v,l])=>{
+    const o=h('option',{value:v},l); if(prefs.lastSeen===v)o.selected=true; lsSel.appendChild(o);
   });
+  lsSel.addEventListener('change',()=>{prefs.lastSeen=lsSel.value;save();});
+  ls.appendChild(lsSel); wrap.appendChild(ls);
+
+  // Profile photo
+  const pp=h('div',{class:'card',style:{padding:'13px 16px'}});
+  pp.appendChild(h('div',{style:{fontWeight:'700',fontSize:'.9rem',marginBottom:'8px'}},'📸 '+(S.lang==='ar'?'صورة الحساب':'Profile Photo')));
+  const ppSel=h('select',{class:'inp-f',style:{fontSize:'.85rem'}});
+  [['all',S.lang==='ar'?'الجميع':'Everyone'],['contacts',S.lang==='ar'?'القسم':'Dept'],['none',S.lang==='ar'?'لا أحد':'Nobody']].forEach(([v,l])=>{
+    const o=h('option',{value:v},l); if(prefs.photo===v)o.selected=true; ppSel.appendChild(o);
+  });
+  ppSel.addEventListener('change',()=>{prefs.photo=ppSel.value;save();});
+  pp.appendChild(ppSel); wrap.appendChild(pp);
+
+  // 2FA toggle
+  const tfa=h('div',{class:'card',style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'13px 16px'}});
+  tfa.appendChild(h('div',{style:{fontWeight:'700',fontSize:'.9rem'}},'🔐 '+(S.lang==='ar'?'التحقق الثنائي':'Two-Factor Auth')));
+  const tfaTog=makeToggle(prefs.twofa,(v)=>{prefs.twofa=v;save();alert(S.lang==='ar'?'سيتوفر قريباً':'Coming soon');},'var(--ac)');
+  tfa.appendChild(tfaTog); wrap.appendChild(tfa);
+
   return wrap;
 }
 
@@ -1349,7 +1389,7 @@ function renderAdmin(){
   const tl=t();
   const cont=h('div',{style:{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}});
   let activeTab='stats';
-  const tabBar=h('div',{style:{padding:'.65rem .85rem',borderBottom:'1px solid var(--border)',display:'flex',gap:'5px',flexWrap:'nowrap',overflowX:'auto',flexShrink:'0'}});
+  const tabBar=h('div',{style:{padding:'.65rem .85rem',borderBottom:'1px solid var(--border)',display:'flex',gap:'5px',flexWrap:'nowrap',overflowX:'auto',flexShrink:'0',alignItems:'center'}});
   const contentArea=h('div',{style:{flex:'1',overflowY:'auto',padding:'1rem'}});
   cont.append(tabBar,contentArea);
 
@@ -1363,6 +1403,11 @@ function renderAdmin(){
     }},lb);
     tabBtns[id]=btn; tabBar.appendChild(btn);
   });
+  // Add user button (developer only)
+  if(S.user?.role==='مطور'){
+    const addBtn=h('button',{class:'btn btn-s',style:{fontSize:'.78rem',padding:'.35rem .8rem',marginInlineStart:'auto',flexShrink:'0'},onClick:()=>showAddUserModal()},'➕ '+(S.lang==='ar'?'إضافة حساب':'Add User'));
+    tabBar.appendChild(addBtn);
+  }
 
   const loadTabContent=async(id)=>{
     contentArea.innerHTML=`<div style="text-align:center;padding:3rem;color:var(--tx3)"><span class="sp">⟳</span></div>`;
@@ -1443,6 +1488,73 @@ function renderAdmin(){
   return cont;
 }
 
+/* ═══ DEVELOPER PANEL: ADD USER ═══ */
+function showAddUserModal(){
+  const tl=t();
+  const bg=h('div',{class:'modal-bg'});
+  const box=h('div',{class:'modal-box'});
+  box.appendChild(h('div',{style:{fontWeight:'800',fontSize:'1rem',color:'var(--ac)',marginBottom:'1.2rem'}},'➕ إضافة مستخدم جديد'));
+
+  const fields = [
+    ['uid','الرقم الجامعي / الامتحاني','text'],
+    ['name_ar','الاسم بالعربي','text'],
+    ['password','كلمة المرور','password'],
+    ['recovery_code','رمز الاسترداد','text'],
+  ];
+  const vals={};
+  fields.forEach(([k,lb,tp])=>{
+    box.appendChild(h('label',{style:{fontSize:'.79rem',color:'var(--tx2)',display:'block',marginBottom:'5px',fontWeight:'700',marginTop:'.75rem'}},lb));
+    const inp=h('input',{class:'inp-f',type:tp});
+    if(k==='password') inp.value='1234';
+    if(k==='recovery_code') inp.value='00000';
+    inp.addEventListener('input',()=>{vals[k]=inp.value;});
+    vals[k]=inp.value||'';
+    box.appendChild(inp);
+  });
+
+  box.appendChild(h('label',{style:{fontSize:'.79rem',color:'var(--tx2)',display:'block',marginBottom:'5px',fontWeight:'700',marginTop:'.75rem'}},'الدور'));
+  const roleSelect=h('select',{class:'inp-f',style:{marginBottom:'1rem'}});
+  Object.keys(RD).forEach(r=>{const o=h('option',{value:r},`${RD[r].icon} ${r}`);if(r==='طالب')o.selected=true;roleSelect.appendChild(o);});
+  box.appendChild(roleSelect);
+
+  box.appendChild(h('label',{style:{fontSize:'.79rem',color:'var(--tx2)',display:'block',marginBottom:'5px',fontWeight:'700'}},'الشعبة'));
+  const secSelect=h('select',{class:'inp-f',style:{marginBottom:'1rem'}});
+  secSelect.appendChild(h('option',{value:''},'-- بدون شعبة --'));
+  // Will be populated
+  API.get('/api/sections').then(secs=>{if(secs)secs.forEach(s=>{secSelect.appendChild(h('option',{value:s.id},s.name));});});
+  box.appendChild(secSelect);
+
+  const errDiv=h('div',{style:{color:'var(--rd)',fontSize:'.83rem',marginBottom:'.75rem',display:'none'}});
+  box.appendChild(errDiv);
+
+  const btnRow=h('div',{style:{display:'flex',gap:'8px'}});
+  const saveBtn=h('button',{class:'btn btn-p',style:{flex:'1',width:'auto'}},'إضافة');
+  const cancelBtn=h('button',{class:'btn btn-s'},'إلغاء');
+  btnRow.append(saveBtn,cancelBtn);
+  box.appendChild(btnRow);
+  bg.appendChild(box); document.body.appendChild(bg);
+
+  // Sync vals from inputs
+  box.querySelectorAll('input').forEach(inp=>{inp.addEventListener('input',()=>{const idx=fields.findIndex(([k])=>true);});});
+
+  saveBtn.addEventListener('click',async()=>{
+    const uid=box.querySelectorAll('input')[0].value.trim().toUpperCase();
+    const name=box.querySelectorAll('input')[1].value.trim();
+    const pwd=box.querySelectorAll('input')[2].value;
+    const rec=box.querySelectorAll('input')[3].value.trim();
+    if(!uid||!name){errDiv.textContent='الرقم والاسم مطلوبان';errDiv.style.display='block';return;}
+    saveBtn.disabled=true;
+    const d=await API.post('/api/dev/add-user',{uid,name_ar:name,name_en:name,password:pwd,recovery_code:rec,role:roleSelect.value,section_id:secSelect.value||null});
+    saveBtn.disabled=false;
+    if(d?.ok){bg.remove();alert('✅ تم إضافة الحساب بنجاح!
+الرقم: '+uid+'
+كلمة المرور: '+pwd);}
+    else{errDiv.textContent=d?.error||'خطأ';errDiv.style.display='block';}
+  });
+  cancelBtn.addEventListener('click',()=>bg.remove());
+  bg.addEventListener('click',(e)=>{if(e.target===bg)bg.remove();});
+}
+
 function showEditUserModal(user){
   const tl=t();
   const bg=h('div',{class:'modal-bg'});
@@ -1513,6 +1625,451 @@ async function loadChannels(){
   if(data&&Array.isArray(data)) S.channels=data;
 }
 
+
+
+/* ═══════════════════════════════════════════
+   ROOMS (Discord-style)
+═══════════════════════════════════════════ */
+function renderRooms(){
+  const cont=h('div',{style:{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}});
+  const hdr=h('div',{style:{padding:'12px 14px',borderBottom:'1px solid var(--border)',background:'var(--nav)',display:'flex',alignItems:'center',gap:'10px',flexShrink:'0'}});
+  hdr.appendChild(h('span',{style:{fontSize:'1.3rem'}},'🏠'));
+  const hi=h('div',{style:{flex:'1'}});
+  hi.appendChild(h('div',{style:{fontWeight:'800',fontSize:'.95rem'}},S.lang==='ar'?'الغرف':'Rooms'));
+  hi.appendChild(h('div',{style:{fontSize:'.72rem',color:'var(--tx2)'}},S.lang==='ar'?'غرف نقاش عامة وخاصة':'Public & private discussion rooms'));
+  hi.appendChild(h('div',{style:{flex:'1'}}));
+  hdr.appendChild(hi);
+  if(S.user?.role==='مطور'){
+    const btn=h('button',{class:'btn btn-s',style:{fontSize:'.8rem',padding:'.38rem .85rem',flexShrink:'0'},onClick:()=>showCreateRoomModal(listCont,load)},S.lang==='ar'?'+ غرفة':'+ Room');
+    hdr.appendChild(btn);
+  }
+  cont.appendChild(hdr);
+  const listCont=h('div',{style:{flex:'1',overflowY:'auto',padding:'.5rem'}});
+  cont.appendChild(listCont);
+
+  const load=async()=>{
+    listCont.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--tx3)"><span class="sp">⟳</span></div>`;
+    const data=await API.get('/api/rooms');
+    listCont.innerHTML='';
+    if(!data?.length){
+      listCont.appendChild(h('div',{style:{textAlign:'center',padding:'3rem 1rem',color:'var(--tx3)'}},
+        h('div',{style:{fontSize:'3rem',marginBottom:'.75rem'}},'🏠'),
+        h('div',{style:{fontSize:'.9rem'}},S.lang==='ar'?'لا توجد غرف بعد':'No rooms yet'),
+        ...(S.user?.role==='مطور'?[h('div',{style:{fontSize:'.8rem',marginTop:'.5rem',color:'var(--ac)'}},'اضغط + غرفة لإنشاء غرفة')]:[])));
+      return;
+    }
+    data.forEach((room,i)=>{
+      const card=h('div',{style:{background:'var(--card)',border:'1px solid var(--cb)',borderRadius:'16px',padding:'1rem 1.1rem',marginBottom:'.6rem',cursor:'pointer',animation:`slideUp .3s ease ${i*.04}s both`,transition:'box-shadow .2s'},onClick:()=>openRoomChat(room)});
+      card.addEventListener('mouseenter',()=>card.style.boxShadow='var(--shad)');
+      card.addEventListener('mouseleave',()=>card.style.boxShadow='none');
+      const top=h('div',{style:{display:'flex',alignItems:'center',gap:'12px',marginBottom:room.last_msg?'8px':'0'}});
+      const ico=h('div',{style:{width:'46px',height:'46px',borderRadius:'50%',background:`${room.color||'#555'}18`,border:`2px solid ${room.color||'#555'}28`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.4rem',flexShrink:'0'}},room.icon||'🏠');
+      top.appendChild(ico);
+      const info=h('div',{style:{flex:'1',minWidth:'0'}});
+      info.appendChild(h('div',{style:{fontWeight:'800',fontSize:'.92rem'}},room.name_ar||''));
+      // Roles badges
+      const perms=room.perms||{};
+      const roles=perms.roles||[];
+      const rolesDiv=h('div',{style:{display:'flex',gap:'4px',flexWrap:'wrap',marginTop:'3px'}});
+      roles.slice(0,4).forEach(r=>rolesDiv.appendChild(h('span',{class:'pill',style:{background:`${(RD[r]||{clr:'#888'}).clr}15`,color:(RD[r]||{clr:'#888'}).clr,border:`1px solid ${(RD[r]||{clr:'#888'}).clr}25`,fontSize:'.62rem`'}},`${(RD[r]||{icon:'?'}).icon} ${r}`)));
+      info.appendChild(rolesDiv);
+      top.appendChild(info);
+      const status=h('div',{style:{textAlign:'left'}});
+      if(!room.can_write) status.appendChild(h('span',{style:{fontSize:'.7rem',color:'var(--tx3)',padding:'2px 7px',background:'rgba(255,255,255,.06)',borderRadius:'99px'}},'👁 قراءة'));
+      top.appendChild(status);
+      card.appendChild(top);
+      if(room.last_msg){
+        card.appendChild(h('div',{style:{fontSize:'.78rem',color:'var(--tx2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingInlineStart:'58px'}},room.last_msg));
+      }
+      listCont.appendChild(card);
+    });
+  };
+  load();
+  return cont;
+}
+
+function openRoomChat(room){
+  const cont=h('div',{style:{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}});
+  const hdr=h('div',{style:{minHeight:'56px',display:'flex',alignItems:'center',gap:'10px',padding:'0 10px',background:'var(--nav)',borderBottom:'1px solid var(--border)',flexShrink:'0'}});
+  hdr.appendChild(h('button',{class:'ibt',style:{fontSize:'1.1rem'},onClick:()=>{S.navTab='rooms';renderAll();}},'←'));
+  hdr.appendChild(h('div',{style:{width:'36px',height:'36px',borderRadius:'50%',background:`${room.color}18`,border:`2px solid ${room.color}28`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.2rem'}},room.icon||'🏠'));
+  const hi=h('div',{style:{flex:'1',minWidth:'0'}});
+  hi.appendChild(h('div',{style:{fontWeight:'800',fontSize:'.92rem',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},room.name_ar||''));
+  hi.appendChild(h('div',{style:{fontSize:'.71rem',color:'var(--tx2)'}},room.desc_ar||''));
+  hdr.appendChild(hi);
+  cont.appendChild(hdr);
+
+  const msgsArea=h('div',{style:{flex:'1',overflowY:'auto',padding:'10px 8px',display:'flex',flexDirection:'column',gap:'3px'}});
+  cont.appendChild(msgsArea);
+
+  const load=async()=>{
+    msgsArea.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--tx3)"><span class="sp">⟳</span></div>`;
+    const data=await API.get(`/api/rooms/${room.ch_key}/messages`);
+    msgsArea.innerHTML='';
+    (data?.messages||[]).forEach(m=>msgsArea.appendChild(renderMsgBubble(m,room)));
+    msgsArea.scrollTop=msgsArea.scrollHeight;
+  };
+  load();
+
+  if(room.can_write){
+    const comp=h('div',{style:{background:'var(--nav)',borderTop:'1px solid var(--border)',padding:'8px 10px',flexShrink:'0'}});
+    const row=h('div',{style:{display:'flex',gap:'8px',alignItems:'flex-end'}});
+    const ta=h('textarea',{class:'inp',placeholder:S.lang==='ar'?`اكتب في ${room.name_ar||'الغرفة'}...`:`Write in ${room.name_ar||'room'}...`,rows:'1',style:{flex:'1',resize:'none',minHeight:'42px',maxHeight:'100px',lineHeight:'1.55',borderRadius:'20px',padding:'.58rem 1rem',fontSize:'.9rem',direction:'auto'}});
+    ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();}});
+    const sBtn=h('button',{class:'ibt',style:{background:'var(--hov)',color:'var(--tx3)',flexShrink:'0'}},'✈️');
+    const doSend=async()=>{
+      const txt=ta.value.trim();if(!txt)return;
+      const fd=new FormData();fd.append('text',txt);
+      sBtn.disabled=true;
+      const d=await API.postF(`/api/rooms/${room.ch_key}/messages`,fd);
+      sBtn.disabled=false;
+      if(d?.ok){ta.value='';const el=renderMsgBubble(d.message,room);msgsArea.appendChild(el);msgsArea.scrollTop=msgsArea.scrollHeight;}
+    };
+    sBtn.addEventListener('click',doSend);
+    row.append(ta,sBtn);comp.appendChild(row);cont.appendChild(comp);
+  } else {
+    cont.appendChild(h('div',{style:{background:'var(--nav)',borderTop:'1px solid var(--border)',padding:'12px',textAlign:'center',color:'var(--tx3)',fontSize:'.83rem',flexShrink:'0'}},'👁 '+S.lang==='ar'?'للقراءة فقط':'Read only'));
+  }
+  const main=document.getElementById('main');
+  if(main){main.innerHTML='';main.appendChild(cont);}
+}
+
+function showCreateRoomModal(listCont, reload){
+  const bg=h('div',{class:'modal-bg'});
+  const box=h('div',{class:'modal-box'});
+  box.appendChild(h('div',{style:{fontWeight:'800',fontSize:'1rem',color:'var(--ac)',marginBottom:'1.2rem'}},'🏠 إنشاء غرفة جديدة'));
+  const nameInp=h('input',{class:'inp-f',placeholder:'اسم الغرفة',style:{marginBottom:'.75rem'}});
+  const descInp=h('input',{class:'inp-f',placeholder:'وصف الغرفة',style:{marginBottom:'.75rem'}});
+  
+  // Icon picker
+  box.appendChild(h('div',{style:{fontSize:'.79rem',color:'var(--tx2)',marginBottom:'5px',fontWeight:'700'}},'أيقونة الغرفة'));
+  const icons=['🏠','📚','🔬','💡','🎓','⚡','🌍','🏆','💻','🎯'];
+  let selIcon='🏠';
+  const iconRow=h('div',{style:{display:'flex',gap:'6px',flexWrap:'wrap',marginBottom:'.75rem'}});
+  icons.forEach(ic=>{
+    const btn=h('button',{style:{width:'36px',height:'36px',borderRadius:'9px',border:`2px solid ${ic===selIcon?'var(--ac)':'var(--border)'}`,background:'var(--hov)',cursor:'pointer',fontSize:'1.1rem',transition:'all .15s'}},ic);
+    btn.addEventListener('click',()=>{selIcon=ic;iconRow.querySelectorAll('button').forEach(b=>b.style.borderColor='var(--border)');btn.style.borderColor='var(--ac)';});
+    iconRow.appendChild(btn);
+  });
+  box.append(nameInp,descInp,iconRow);
+
+  // Role permissions
+  box.appendChild(h('div',{style:{fontSize:'.79rem',color:'var(--tx2)',marginBottom:'8px',fontWeight:'700'}},'من يستطيع الدخول؟'));
+  const roleChecks={};
+  const allRoles=Object.keys(RD);
+  const checkRow=h('div',{style:{display:'flex',gap:'6px',flexWrap:'wrap',marginBottom:'.75rem'}});
+  allRoles.forEach(r=>{
+    let checked=true;
+    const rd2=RD[r];
+    const lbl=h('label',{style:{display:'flex',alignItems:'center',gap:'5px',cursor:'pointer',padding:'4px 8px',borderRadius:'8px',background:'var(--hov)',fontSize:'.82rem'}});
+    const cb=h('input',{type:'checkbox'}); cb.checked=checked;
+    roleChecks[r]=cb;
+    lbl.append(cb,h('span',{},`${rd2.icon} ${r}`));
+    checkRow.appendChild(lbl);
+  });
+  box.appendChild(checkRow);
+
+  const btn=h('button',{class:'btn btn-p',style:{marginTop:'.5rem'}},S.lang==='ar'?'إنشاء':'Create');
+  btn.addEventListener('click',async()=>{
+    if(!nameInp.value.trim())return;
+    const readRoles=allRoles.filter(r=>roleChecks[r]?.checked);
+    const d=await API.post('/api/rooms',{
+      name_ar:nameInp.value.trim(),desc_ar:descInp.value.trim()||'غرفة عامة',
+      icon:selIcon,color:'#0066cc',
+      read_roles:readRoles,write_roles:readRoles.filter(r=>RD[r]?.lv>=2)
+    });
+    if(d?.ok){bg.remove();reload();}
+  });
+  box.appendChild(btn);
+  bg.appendChild(box);document.body.appendChild(bg);
+  bg.addEventListener('click',e=>{if(e.target===bg)bg.remove();});
+}
+
+/* ═══════════════════════════════════════════
+   POSTS (Instagram-style)
+═══════════════════════════════════════════ */
+function renderPosts(){
+  const cont=h('div',{style:{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}});
+  const hdr=h('div',{style:{padding:'12px 14px',borderBottom:'1px solid var(--border)',background:'var(--nav)',display:'flex',alignItems:'center',gap:'10px',flexShrink:'0'}});
+  hdr.appendChild(h('span',{style:{fontSize:'1.3rem'}},'📸'));
+  const hi=h('div',{style:{flex:'1'}});
+  hi.appendChild(h('div',{style:{fontWeight:'800',fontSize:'.95rem'}},S.lang==='ar'?'المنشورات':'Posts'));
+  hi.appendChild(h('div',{style:{fontSize:'.72rem',color:'var(--tx2)'}},S.lang==='ar'?'مشاركة الأحداث والصور':'Share moments & updates'));
+  hdr.appendChild(hi);
+  const newPostBtn=h('button',{class:'btn btn-s',style:{fontSize:'.8rem',padding:'.38rem .85rem',flexShrink:'0'},onClick:()=>showNewPostModal(listCont,load)},S.lang==='ar'?'+ منشور':'+ Post');
+  hdr.appendChild(newPostBtn);
+  cont.appendChild(hdr);
+
+  const listCont=h('div',{style:{flex:'1',overflowY:'auto',padding:'.75rem'}});
+  cont.appendChild(listCont);
+
+  const load=async()=>{
+    listCont.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--tx3)"><span class="sp">⟳</span></div>`;
+    const data=await API.get('/api/posts');
+    listCont.innerHTML='';
+    if(!data?.length){
+      listCont.appendChild(h('div',{style:{textAlign:'center',padding:'3rem 1rem',color:'var(--tx3)'}},
+        h('div',{style:{fontSize:'3rem',marginBottom:'.75rem'}},'📸'),
+        h('div',{style:{fontSize:'.9rem'}},S.lang==='ar'?'لا توجد منشورات':'No posts yet')));
+      return;
+    }
+    data.forEach((post,i)=>{
+      const card=h('div',{class:'ann-card',style:{animation:`slideUp .3s ease ${i*.05}s both`}});
+      // Author header
+      const authRow=h('div',{style:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'.85rem'}});
+      const av=h('div',{style:{width:'40px',height:'40px',borderRadius:'50%',background:`${(RD[post.author_role]||{clr:'#888'}).clr}20`,border:`2px solid ${(RD[post.author_role]||{clr:'#888'}).clr}28`,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'900',color:(RD[post.author_role]||{clr:'#888'}).clr,fontSize:'.82rem',flexShrink:'0',overflow:'hidden'}});
+      if(post.author_photo) av.appendChild(h('img',{src:post.author_photo,alt:'',style:{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}));
+      else av.textContent=inits(post.author_name||'');
+      authRow.appendChild(av);
+      const authInfo=h('div',{style:{flex:'1'}});
+      authInfo.appendChild(h('div',{style:{fontWeight:'700',fontSize:'.88rem'}},post.author_name||''));
+      authInfo.appendChild(h('div',{style:{display:'flex',alignItems:'center',gap:'6px',marginTop:'2px'}},
+        makePill(post.author_role||'طالب'),
+        h('span',{style:{fontSize:'.7rem',color:'var(--tx3)'}},timeLabel(post.created_at))));
+      authRow.appendChild(authInfo);
+      // Delete btn
+      if(post.author_id===S.user?.id||RD[S.user?.role||'']?.admin){
+        const db2=h('button',{class:'ibt',style:{color:'var(--rd)',width:'30px',height:'30px'},onClick:async()=>{if(!confirm('حذف؟'))return;const d=await API.del(`/api/posts/${post.id}`);if(d?.ok)card.remove();}},'🗑️');
+        authRow.appendChild(db2);
+      }
+      card.appendChild(authRow);
+      // Image
+      if(post.image_path){
+        const img=h('img',{src:post.image_path,alt:'',style:{width:'100%',borderRadius:'12px',maxHeight:'400px',objectFit:'cover',marginBottom:'.75rem',cursor:'zoom-in'}});
+        img.addEventListener('click',()=>showLightbox(post.image_path));
+        card.appendChild(img);
+      }
+      // Caption
+      if(post.caption) card.appendChild(h('p',{style:{fontSize:'.9rem',lineHeight:'1.65',marginBottom:'.75rem',whiteSpace:'pre-wrap',direction:'auto'}},post.caption));
+      // Like button
+      const likeRow=h('div',{style:{display:'flex',alignItems:'center',gap:'10px',paddingTop:'.75rem',borderTop:'1px solid var(--bsoft)'}});
+      let liked=false;
+      const likeBtn=h('button',{style:{display:'flex',alignItems:'center',gap:'5px',background:'transparent',border:'none',cursor:'pointer',color:'var(--tx2)',fontSize:'.88rem',fontFamily:'inherit',transition:'color .15s',padding:'4px 8px',borderRadius:'8px'},onClick:async()=>{
+        if(liked)return;liked=true;
+        const d=await API.post(`/api/posts/${post.id}/like`);
+        if(d?.ok){likeBtn.style.color='var(--rd)';likeCnt.textContent=d.likes;}
+      }});
+      const likeHeart=h('span',{style:{fontSize:'1.1rem'}},'🤍');
+      const likeCnt=h('span',{},String(post.likes||0));
+      likeBtn.append(likeHeart,likeCnt);
+      likeBtn.addEventListener('mouseenter',()=>{if(!liked)likeHeart.textContent='❤️';});
+      likeBtn.addEventListener('mouseleave',()=>{if(!liked)likeHeart.textContent='🤍';});
+      likeRow.appendChild(likeBtn);
+      card.appendChild(likeRow);
+      listCont.appendChild(card);
+    });
+  };
+  load();
+  return cont;
+}
+
+function showNewPostModal(listCont, reload){
+  const bg=h('div',{class:'modal-bg'});
+  const box=h('div',{class:'modal-box'});
+  box.appendChild(h('div',{style:{fontWeight:'800',color:'var(--ac)',marginBottom:'1rem'}},'📸 '+(S.lang==='ar'?'منشور جديد':'New Post')));
+  const capTa=h('textarea',{class:'inp-f',rows:'3',placeholder:S.lang==='ar'?'اكتب شيئاً...':'Write something...',style:{marginBottom:'.85rem',direction:'auto'}});
+  const imgInp=h('input',{type:'file',accept:'image/*',class:'inp-f',style:{marginBottom:'1rem',fontSize:'.82rem'}});
+  box.append(capTa,imgInp);
+  const btn=h('button',{class:'btn btn-p'},S.lang==='ar'?'نشر':'Post');
+  btn.addEventListener('click',async()=>{
+    const fd=new FormData();
+    if(capTa.value.trim())fd.append('caption',capTa.value.trim());
+    if(imgInp.files[0])fd.append('image',imgInp.files[0]);
+    if(!capTa.value.trim()&&!imgInp.files[0])return;
+    btn.disabled=true;
+    const d=await API.postF('/api/posts',fd);
+    btn.disabled=false;
+    if(d?.ok){bg.remove();reload();}
+  });
+  box.appendChild(btn);
+  bg.appendChild(box);document.body.appendChild(bg);
+  bg.addEventListener('click',e=>{if(e.target===bg)bg.remove();});
+}
+/* ═══════════════════════════════════════════
+   DM - DIRECT MESSAGES
+═══════════════════════════════════════════ */
+function renderDMs(){
+  const tl=t();
+  const cont=h('div',{style:{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}});
+
+  const header=h('div',{style:{padding:'12px 14px',borderBottom:'1px solid var(--border)',background:'var(--nav)',display:'flex',alignItems:'center',gap:'10px',flexShrink:'0'}});
+  header.appendChild(h('span',{style:{fontSize:'1.3rem'}},'✉️'));
+  const hi=h('div',{style:{flex:'1'}});
+  hi.appendChild(h('div',{style:{fontWeight:'800',fontSize:'.95rem'}},'الرسائل الخاصة'));
+  hi.appendChild(h('div',{style:{fontSize:'.72rem',color:'var(--tx2)'}},'DM – تواصل مباشر'));
+  header.appendChild(hi);
+  const newDMBtn=h('button',{class:'btn btn-s',style:{fontSize:'.8rem',padding:'.38rem .85rem',flexShrink:'0'},onClick:()=>showNewDMModal(listCont,loadDMList)},'+ DM');
+  header.appendChild(newDMBtn);
+  cont.appendChild(header);
+
+  // Search bar
+  const searchWrap=h('div',{style:{padding:'8px 14px',borderBottom:'1px solid var(--border)',flexShrink:'0'}});
+  const searchInp=h('input',{class:'inp',placeholder:'🔍 ابحث عن مستخدم...',style:{fontSize:'.85rem',borderRadius:'12px',padding:'.45rem .85rem'}});
+  searchWrap.appendChild(searchInp);
+  cont.appendChild(searchWrap);
+
+  const listCont=h('div',{style:{flex:'1',overflowY:'auto',padding:'.5rem'}});
+  cont.appendChild(listCont);
+
+  // DM Chat area (right panel on desktop / full on mobile)
+  let activeDMKey=null;
+
+  const loadDMList=async()=>{
+    listCont.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--tx3)"><span class="sp">⟳</span></div>`;
+    const data=await API.get('/api/dm-list');
+    listCont.innerHTML='';
+    if(!data?.length){
+      listCont.appendChild(h('div',{style:{textAlign:'center',padding:'3rem 1rem',color:'var(--tx3)'}},
+        h('div',{style:{fontSize:'3rem',marginBottom:'.75rem'}},'✉️'),
+        h('div',{style:{fontSize:'.9rem'}},'لا توجد محادثات خاصة'),
+        h('div',{style:{fontSize:'.8rem',marginTop:'.5rem',color:'var(--tx3)'}},'اضغط + DM لبدء محادثة جديدة')
+      ));
+      return;
+    }
+    data.forEach((dm,i)=>{
+      const p=dm.partner;
+      const row=h('div',{class:'ch-row',style:{borderRadius:'12px',marginBottom:'4px',animation:`slideUp .3s ease ${i*.04}s both`},
+        onClick:()=>openDMChat(dm.ch_key, p, listCont, loadDMList)});
+      row.appendChild(makeAvatar(p,46,true));
+      const info=h('div',{style:{flex:'1',minWidth:'0'}});
+      const top=h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'2px'}});
+      top.appendChild(h('span',{style:{fontWeight:'700',fontSize:'.87rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:'1'}},p.name_ar||''));
+      if(dm.last_time) top.appendChild(h('span',{style:{fontSize:'.65rem',color:'var(--tx3)',flexShrink:'0',marginInlineStart:'6px'}},timeLabel(dm.last_time)));
+      info.appendChild(top);
+      info.appendChild(h('span',{style:{fontSize:'.76rem',color:'var(--tx2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'block'}},dm.last_msg||''));
+      row.appendChild(info);
+      row.appendChild(makePill(p.role||'طالب'));
+      listCont.appendChild(row);
+    });
+  };
+  loadDMList();
+
+  // Search users
+  let st;
+  searchInp.addEventListener('input',async()=>{
+    clearTimeout(st);
+    const q=searchInp.value.trim();
+    if(!q){loadDMList();return;}
+    st=setTimeout(async()=>{
+      const users=await API.get(`/api/search-users?q=${encodeURIComponent(q)}`);
+      listCont.innerHTML='';
+      if(!users?.length){listCont.appendChild(h('div',{style:{textAlign:'center',padding:'2rem',color:'var(--tx3)'}},'لا نتائج'));return;}
+      users.forEach(p=>{
+        const row=h('div',{class:'ch-row',style:{borderRadius:'12px',marginBottom:'4px'},onClick:async()=>{
+          const d=await API.get(`/api/dm/${p.uid}`);
+          if(d?.channel) openDMChat(d.channel.ch_key,p,listCont,loadDMList);
+        }});
+        row.appendChild(makeAvatar(p,40,true));
+        const info=h('div',{style:{flex:'1',minWidth:'0'}});
+        info.appendChild(h('div',{style:{fontWeight:'700',fontSize:'.87rem'}},p.name_ar||''));
+        info.appendChild(makePill(p.role||'طالب'));
+        row.appendChild(info);
+        listCont.appendChild(row);
+      });
+    },300);
+  });
+
+  return cont;
+}
+
+function openDMChat(chKey, partner, listCont, reload){
+  // On mobile: show full chat; on desktop: could split
+  // For now: replace list with chat
+  const chatCont=h('div',{style:{height:'100%',display:'flex',flexDirection:'column',background:'var(--bg)'}});
+
+  const hdr=h('div',{style:{minHeight:'56px',display:'flex',alignItems:'center',gap:'10px',padding:'0 10px',background:'var(--nav)',borderBottom:'1px solid var(--border)',flexShrink:'0'}});
+  hdr.appendChild(h('button',{class:'ibt',style:{fontSize:'1.1rem'},onClick:()=>{
+    const main=document.getElementById('main'); if(main){main.innerHTML='';main.appendChild(renderDMs());}
+  }},'←'));
+  hdr.appendChild(makeAvatar(partner,38,true));
+  const hInfo=h('div',{style:{flex:'1',minWidth:'0'}});
+  hInfo.appendChild(h('div',{style:{fontWeight:'800',fontSize:'.92rem'}},partner.name_ar||''));
+  hInfo.appendChild(h('div',{style:{fontSize:'.71rem',color:'var(--tx2)'}},partner.role||''));
+  hdr.appendChild(hInfo);
+  chatCont.appendChild(hdr);
+
+  const msgsArea=h('div',{style:{flex:'1',overflowY:'auto',padding:'10px 8px 6px',display:'flex',flexDirection:'column',gap:'3px'}});
+  chatCont.appendChild(msgsArea);
+
+  // Load DM messages
+  const loadMsgs=async()=>{
+    msgsArea.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--tx3)"><span class="sp">⟳</span></div>`;
+    const data=await API.get(`/api/dm/${partner.uid}`);
+    msgsArea.innerHTML='';
+    if(!data?.messages?.length){
+      msgsArea.appendChild(h('div',{style:{flex:'1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'12px',color:'var(--tx3)',padding:'2rem',textAlign:'center'}},
+        makeAvatar(partner,60,true),
+        h('div',{style:{fontWeight:'700',color:'var(--tx2)'}},partner.name_ar||''),
+        h('div',{style:{fontSize:'.8rem',color:'var(--tx3)'}},'ابدأ محادثة...')
+      ));
+      return;
+    }
+    data.messages.forEach(msg=>msgsArea.appendChild(renderMsgBubble(msg,{ch_type:'dm'})));
+    msgsArea.scrollTop=msgsArea.scrollHeight;
+  };
+  loadMsgs();
+
+  // Compose
+  const compose=h('div',{style:{background:'var(--nav)',borderTop:'1px solid var(--border)',padding:'8px 10px',flexShrink:'0'}});
+  const row=h('div',{style:{display:'flex',gap:'8px',alignItems:'flex-end'}});
+  const ta=h('textarea',{class:'inp',placeholder:'رسالة خاصة...',rows:'1',style:{flex:'1',resize:'none',minHeight:'42px',maxHeight:'100px',lineHeight:'1.55',borderRadius:'20px',padding:'.58rem 1rem',fontSize:'.9rem',direction:'auto'}});
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();}});
+  const sendBtn=h('button',{class:'ibt',style:{background:'var(--hov)',color:'var(--tx3)',flexShrink:'0'}},'✈️');
+  const doSend=async()=>{
+    const text=ta.value.trim(); if(!text)return;
+    const fd=new FormData(); fd.append('text',text);
+    sendBtn.disabled=true;
+    const d=await API.postF(`/api/dm/${partner.uid}`,fd);
+    sendBtn.disabled=false;
+    if(d?.ok){ta.value='';const el=renderMsgBubble(d.message,{ch_type:'dm'});msgsArea.appendChild(el);msgsArea.scrollTop=msgsArea.scrollHeight;}
+  };
+  sendBtn.addEventListener('click',doSend);
+  row.append(ta,sendBtn);
+  compose.appendChild(row);
+  chatCont.appendChild(compose);
+
+  const main=document.getElementById('main');
+  if(main){main.innerHTML='';main.appendChild(chatCont);}
+}
+
+function showNewDMModal(listCont, reload){
+  const bg=h('div',{class:'modal-bg'});
+  const box=h('div',{class:'modal-box'});
+  box.appendChild(h('div',{style:{fontWeight:'800',color:'var(--ac)',marginBottom:'1rem'}},'✉️ محادثة جديدة'));
+  const searchInp=h('input',{class:'inp-f',placeholder:'ابحث باسم المستخدم أو رقمه...'});
+  const results=h('div',{style:{marginTop:'1rem',maxHeight:'300px',overflowY:'auto'}});
+  box.append(searchInp,results);
+  let st;
+  searchInp.addEventListener('input',async()=>{
+    clearTimeout(st);
+    const q=searchInp.value.trim();
+    if(!q){results.innerHTML='';return;}
+    st=setTimeout(async()=>{
+      const users=await API.get(`/api/search-users?q=${encodeURIComponent(q)}`);
+      results.innerHTML='';
+      if(!users?.length){results.appendChild(h('div',{style:{color:'var(--tx3)',textAlign:'center',padding:'1rem'}},'لا نتائج'));return;}
+      users.forEach(p=>{
+        const row=h('div',{class:'s-row',style:{borderRadius:'10px',marginBottom:'4px'}});
+        row.appendChild(makeAvatar(p,38,true));
+        const info=h('div',{style:{flex:'1'}});
+        info.appendChild(h('div',{style:{fontWeight:'700',fontSize:'.88rem'}},p.name_ar||''));
+        info.appendChild(makePill(p.role||'طالب'));
+        row.appendChild(info);
+        row.addEventListener('click',async()=>{
+          bg.remove();
+          const d=await API.get(`/api/dm/${p.uid}`);
+          if(d?.channel) openDMChat(d.channel.ch_key,p,listCont,reload);
+        });
+        results.appendChild(row);
+      });
+    },300);
+  });
+  box.appendChild(h('button',{class:'btn btn-s',style:{marginTop:'1rem',width:'100%'},onClick:()=>bg.remove()},'إلغاء'));
+  bg.appendChild(box); document.body.appendChild(bg);
+  bg.addEventListener('click',(e)=>{if(e.target===bg)bg.remove();});
+  setTimeout(()=>searchInp.focus(),100);
+}
+
 /* ═══════════════════════════════════════════
    RENDER MAIN CONTENT
 ═══════════════════════════════════════════ */
@@ -1530,6 +2087,12 @@ function renderMain(){
     empty.appendChild(h('div',{style:{fontWeight:'700',color:'var(--tx2)'}},tl.noChats));
     empty.appendChild(h('div',{style:{fontSize:'.8rem'}},`${S.channels.length} ${S.lang==='ar'?'قناة مرئية':'visible channels'}`));
     main.appendChild(empty);
+  } else if(S.navTab==='dm'){
+    main.appendChild(renderDMs());
+  } else if(S.navTab==='rooms'){
+    main.appendChild(renderRooms());
+  } else if(S.navTab==='posts'){
+    main.appendChild(renderPosts());
   } else if(S.navTab==='anns'){
     main.appendChild(renderAnns());
   } else if(S.navTab==='notifs'){
@@ -1557,11 +2120,14 @@ function renderAll(){
   const tl=t();
   const roleData=rd(S.user?.role||'طالب');
   const navItems=[
-    {id:'chats',icon:'💬',label:tl.chats},
-    {id:'anns', icon:'📢',label:tl.anns},
-    {id:'notifs',icon:'🔔',label:tl.notifs},
-    ...(roleData.admin?[{id:'admin',icon:'⚙️',label:tl.admin}]:[]),
-    {id:'settings',icon:'👤',label:tl.settings},
+    {id:'chats',  icon:'💬',label:S.lang==='ar'?'قنوات':'Chats'},
+    {id:'rooms',  icon:'🏠',label:S.lang==='ar'?'غرف':'Rooms'},
+    {id:'dm',     icon:'✉️', label:'DM'},
+    {id:'posts',  icon:'📸',label:S.lang==='ar'?'منشورات':'Posts'},
+    {id:'anns',   icon:'📢',label:S.lang==='ar'?'إعلانات':'Anns'},
+    {id:'notifs', icon:'🔔',label:S.lang==='ar'?'إشعارات':'Notifs'},
+    ...(roleData.admin?[{id:'admin',icon:'⚙️',label:S.lang==='ar'?'تحكم':'Admin'}]:[]),
+    {id:'settings',icon:'👤',label:S.lang==='ar'?'حسابي':'Profile'},
   ];
 
   if(isDesk){
@@ -1587,14 +2153,13 @@ function renderAll(){
     renderMain();
   } else {
     // Mobile
-    const mobileWrap=h('div',{style:{height:'100dvh',display:'flex',flexDirection:'column',overflow:'hidden',position:'relative',zIndex:'1'}});
+    const mobileWrap=h('div',{style:{height:'100svh',display:'flex',flexDirection:'column',overflow:'hidden',position:'relative',zIndex:'1'}});
 
     if(S.navTab==='chats'&&!S.activeCh){
       mobileWrap.appendChild(renderSidebar());
     } else {
       const main=h('div',{id:'main',style:{flex:'1',overflow:'hidden',display:'flex',flexDirection:'column'}});
       mobileWrap.appendChild(main);
-      renderMain();
     }
 
     if(!S.activeCh){
@@ -1608,6 +2173,8 @@ function renderAll(){
       mobileWrap.appendChild(bnav);
     }
     app.appendChild(mobileWrap);
+    // ✅ FIX: renderMain AFTER mobileWrap is in DOM
+    if(S.navTab!=='chats'||S.activeCh) renderMain();
   }
 }
 

@@ -707,3 +707,283 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+
+
+# ─── DEVELOPER: ADD USER ────────────────────────────────────────────────
+@app.route('/api/dev/add-user', methods=['POST'])
+@auth_required
+def api_dev_add_user():
+    u = cu()
+    if u.role != 'مطور':
+        return jsonify({'error': 'forbidden'}), 403
+    d   = request.get_json() or {}
+    uid = d.get('uid','').strip().upper()
+    if not uid or User.query.filter_by(uid=uid).first():
+        return jsonify({'ok': False, 'error': 'الرقم موجود مسبقاً أو فارغ'})
+    role = d.get('role','طالب')
+    if role not in ROLES: role = 'طالب'
+    new_u = User(
+        uid         = uid,
+        pwd_hash    = generate_password_hash(d.get('password','1234')),
+        name_ar     = d.get('name_ar', uid),
+        name_en     = d.get('name_en', uid),
+        role        = role,
+        section_id  = d.get('section_id') or None,
+        bio         = d.get('bio',''),
+        recovery_code = d.get('recovery_code','00000'),
+        active      = True
+    )
+    db.session.add(new_u); db.session.commit()
+    return jsonify({'ok': True, 'user': new_u.to_dict()})
+
+@app.route('/api/dev/reset-password', methods=['POST'])
+@auth_required
+def api_dev_reset_pwd():
+    u  = cu()
+    if u.role != 'مطور': return jsonify({'error': 'forbidden'}), 403
+    d  = request.get_json() or {}
+    target = User.query.filter_by(uid=d.get('uid','').upper()).first()
+    if not target: return jsonify({'ok': False, 'error': 'المستخدم غير موجود'})
+    target.pwd_hash = generate_password_hash(d.get('password','1234'))
+    db.session.commit()
+    return jsonify({'ok': True})
+
+# ─── DIRECT MESSAGES ─────────────────────────────────────────────────────
+@app.route('/api/dm/<string:target_uid>')
+@auth_required
+def api_get_dm(target_uid):
+    me     = cu()
+    target = User.query.filter_by(uid=target_uid.upper(), active=True).first()
+    if not target: return jsonify({'error': 'user not found'}), 404
+    # Create or find DM channel
+    ids = sorted([me.id, target.id])
+    dm_key = f'dm_{ids[0]}_{ids[1]}'
+    ch = Channel.query.filter_by(ch_key=dm_key).first()
+    if not ch:
+        ch = Channel(ch_key=dm_key, ch_type='dm',
+                     name_ar=target.name_ar, name_en=target.name_en or target.name_ar,
+                     desc_ar='محادثة خاصة', desc_en='Direct Message',
+                     owner_id=me.id, section_id=None,
+                     icon='💬', color='#00d4ff')
+        db.session.add(ch); db.session.flush()
+        db.session.add(Message(channel_id=ch.id, msg_type='sys',
+                               text=f'بدأت محادثة مع {target.name_ar}'))
+        db.session.commit()
+    pg   = request.args.get('page', 1, type=int)
+    msgs = ch.messages.order_by(Message.created_at.asc()).paginate(page=pg, per_page=80)
+    return jsonify({
+        'channel': ch.to_dict(),
+        'messages': [m.to_dict() for m in msgs.items],
+        'partner': target.to_dict()
+    })
+
+@app.route('/api/dm/<string:target_uid>', methods=['POST'])
+@auth_required
+def api_send_dm(target_uid):
+    me     = cu()
+    target = User.query.filter_by(uid=target_uid.upper(), active=True).first()
+    if not target: return jsonify({'error': 'user not found'}), 404
+    ids    = sorted([me.id, target.id])
+    dm_key = f'dm_{ids[0]}_{ids[1]}'
+    ch     = Channel.query.filter_by(ch_key=dm_key).first()
+    if not ch: return jsonify({'error': 'open DM first'}), 400
+    text = request.form.get('text','').strip()
+    file = request.files.get('file')
+    mt   = 'txt'; fp = fn = None
+    if file and file.filename and allowed_file(file.filename):
+        ext   = file.filename.rsplit('.',1)[1].lower()
+        fname = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{secure_filename(file.filename)}"
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+        fp = f"/uploads/{fname}"; fn = file.filename
+        mt = 'pdf' if ext=='pdf' else 'img'
+    elif not text: return jsonify({'error':'empty'}),400
+    msg = Message(channel_id=ch.id, sender_id=me.id, msg_type=mt,
+                  text=text or None, file_path=fp, file_name=fn)
+    db.session.add(msg); db.session.commit()
+    # Notify target
+    db.session.add(Notif(user_id=target.id,
+        title_ar=f'رسالة خاصة من {me.name_ar}',
+        body_ar=text[:60] if text else (fn or '📎'),
+        ch_key=dm_key))
+    push_to_user(target.id, f'رسالة خاصة من {me.name_ar}', text[:60] if text else '📎')
+    db.session.commit()
+    return jsonify({'ok': True, 'message': msg.to_dict()})
+
+@app.route('/api/dm-list')
+@auth_required
+def api_dm_list():
+    me = cu()
+    # Find all DM channels where user is involved
+    all_chs = Channel.query.filter_by(ch_type='dm').all()
+    result  = []
+    for ch in all_chs:
+        if not ch.ch_key.startswith('dm_'): continue
+        parts = ch.ch_key.replace('dm_','').split('_')
+        if len(parts) != 2: continue
+        if str(me.id) not in parts: continue
+        partner_id = int(parts[0]) if str(me.id)==parts[1] else int(parts[1])
+        partner    = User.query.get(partner_id)
+        if not partner: continue
+        last = ch.messages.order_by(Message.created_at.desc()).first()
+        result.append({
+            'ch_key': ch.ch_key,
+            'partner': partner.to_dict(),
+            'last_msg': (last.text or '')[:50] if last else '',
+            'last_time': last.created_at.strftime('%Y-%m-%dT%H:%M:%S') if last else None,
+        })
+    return jsonify(result)
+
+@app.route('/api/search-users')
+@auth_required
+def api_search_users():
+    q = request.args.get('q','').strip()
+    if len(q) < 2: return jsonify([])
+    users = User.query.filter(
+        (User.name_ar.ilike(f'%{q}%') | User.uid.ilike(f'%{q}%')),
+        User.active == True,
+        User.id != cu().id
+    ).limit(10).all()
+    return jsonify([u.to_dict() for u in users])
+
+
+# ─── ROOMS (Discord-style) ───────────────────────────────────────────────
+@app.route('/api/rooms', methods=['GET'])
+@auth_required
+def api_get_rooms():
+    u   = cu()
+    # Rooms visible to user based on role permissions
+    chs = Channel.query.filter_by(ch_type='room').all()
+    rd  = ROLES.get(u.role, ROLES['طالب'])
+    out = []
+    for ch in chs:
+        import json as jsonlib
+        perms = jsonlib.loads(ch.desc_en or '{}') if ch.desc_en and ch.desc_en.startswith('{') else {}
+        allowed_roles = perms.get('roles', ['مطور','رئيس','مقرر','ممثل','دكتور','طالب'])
+        if u.role in allowed_roles or ch.owner_id == u.id:
+            d2 = ch.to_dict()
+            last = ch.messages.order_by(Message.created_at.desc()).first()
+            d2['last_msg']  = (last.text or '')[:50] if last else ''
+            d2['last_time'] = last.created_at.strftime('%Y-%m-%dT%H:%M:%S') if last else None
+            d2['can_write'] = u.role in perms.get('write_roles', allowed_roles) or ch.owner_id == u.id
+            d2['perms']     = perms
+            out.append(d2)
+    return jsonify(out)
+
+@app.route('/api/rooms', methods=['POST'])
+@auth_required
+def api_create_room():
+    u = cu()
+    if u.role != 'مطور':
+        return jsonify({'error': 'only developer can create rooms'}), 403
+    import json as jsonlib, time as t2
+    d    = request.get_json() or {}
+    name = d.get('name_ar','غرفة جديدة')[:120]
+    icon = d.get('icon','🏠')
+    color= d.get('color','#0066cc')
+    read_roles  = d.get('read_roles',  ['مطور','رئيس','مقرر','ممثل','دكتور','طالب'])
+    write_roles = d.get('write_roles', ['مطور','رئيس','مقرر','ممثل','دكتور'])
+    perms = {'roles': read_roles, 'write_roles': write_roles}
+    ch = Channel(
+        ch_key     = f'room_{u.id}_{int(t2.time())}',
+        name_ar    = f'{icon} {name}',
+        name_en    = f'{icon} {name}',
+        desc_ar    = d.get('desc_ar','غرفة عامة'),
+        desc_en    = jsonlib.dumps(perms),
+        ch_type    = 'room',
+        owner_id   = u.id,
+        section_id = None,
+        icon       = icon,
+        color      = color
+    )
+    db.session.add(ch); db.session.flush()
+    db.session.add(Message(channel_id=ch.id, msg_type='sys',
+                           text=f'🏠 تم إنشاء الغرفة بواسطة {u.name_ar}'))
+    db.session.commit()
+    return jsonify({'ok': True, 'room': ch.to_dict()})
+
+@app.route('/api/rooms/<string:ck>/messages')
+@auth_required
+def api_room_msgs(ck):
+    u  = cu()
+    ch = Channel.query.filter_by(ch_key=ck, ch_type='room').first_or_404()
+    pg   = request.args.get('page', 1, type=int)
+    msgs = ch.messages.order_by(Message.created_at.asc()).paginate(page=pg, per_page=80)
+    return jsonify({'messages': [m.to_dict() for m in msgs.items]})
+
+@app.route('/api/rooms/<string:ck>/messages', methods=['POST'])
+@auth_required
+def api_send_room_msg(ck):
+    u  = cu()
+    ch = Channel.query.filter_by(ch_key=ck, ch_type='room').first_or_404()
+    import json as jsonlib
+    perms = jsonlib.loads(ch.desc_en or '{}') if ch.desc_en and ch.desc_en.startswith('{') else {}
+    write_roles = perms.get('write_roles', list(ROLES.keys()))
+    if u.role not in write_roles and ch.owner_id != u.id:
+        return jsonify({'error': 'forbidden'}), 403
+    text = request.form.get('text','').strip()
+    if not text: return jsonify({'error':'empty'}),400
+    msg = Message(channel_id=ch.id, sender_id=u.id, msg_type='txt', text=text)
+    db.session.add(msg); db.session.commit()
+    return jsonify({'ok': True, 'message': msg.to_dict()})
+
+# ─── INSTAGRAM-STYLE POSTS ───────────────────────────────────────────────
+class Post(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    author_id  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    caption    = db.Column(db.Text)
+    image_path = db.Column(db.String(400))
+    likes      = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    author     = db.relationship('User', backref='posts')
+
+    def to_dict(self):
+        return {'id':self.id,'author_id':self.author_id,
+                'author_name':self.author.name_ar if self.author else None,
+                'author_photo':self.author.photo_url if self.author else None,
+                'author_role':self.author.role if self.author else None,
+                'caption':self.caption,'image_path':self.image_path,
+                'likes':self.likes,'created_at':self.created_at.strftime('%Y-%m-%dT%H:%M:%S')}
+
+@app.route('/api/posts')
+@auth_required
+def api_posts():
+    posts = Post.query.order_by(Post.created_at.desc()).limit(30).all()
+    return jsonify([p.to_dict() for p in posts])
+
+@app.route('/api/posts', methods=['POST'])
+@auth_required
+def api_create_post():
+    u    = cu()
+    cap  = request.form.get('caption','').strip()
+    file = request.files.get('image')
+    ip   = None
+    if file and allowed_file(file.filename):
+        ext = file.filename.rsplit('.',1)[1].lower()
+        fn  = f"post_{u.id}_{int(datetime.now().timestamp())}.{ext}"
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
+        ip = f"/uploads/{fn}"
+    if not cap and not ip:
+        return jsonify({'error': 'empty'}), 400
+    post = Post(author_id=u.id, caption=cap, image_path=ip)
+    db.session.add(post); db.session.commit()
+    return jsonify({'ok': True, 'post': post.to_dict()})
+
+@app.route('/api/posts/<int:pid>/like', methods=['POST'])
+@auth_required
+def api_like_post(pid):
+    post = Post.query.get_or_404(pid)
+    post.likes += 1
+    db.session.commit()
+    return jsonify({'ok': True, 'likes': post.likes})
+
+@app.route('/api/posts/<int:pid>', methods=['DELETE'])
+@auth_required
+def api_del_post(pid):
+    u    = cu()
+    post = Post.query.get_or_404(pid)
+    if post.author_id != u.id and not ROLES.get(u.role,{}).get('admin'):
+        return jsonify({'error':'forbidden'}),403
+    db.session.delete(post); db.session.commit()
+    return jsonify({'ok': True})
