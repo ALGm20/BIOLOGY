@@ -32,17 +32,25 @@ _vpem = os.path.join(os.path.dirname(__file__), 'vapid_private.pem')
 if not app.config['VAPID_PRIVATE_KEY'] and os.path.exists(_vpem):
     app.config['VAPID_PRIVATE_KEY'] = open(_vpem).read()
 
-ALLOWED = {'pdf','png','jpg','jpeg','gif','webp','doc','docx','ppt','pptx'}
+ALLOWED = {
+    'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp',
+    'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx',
+    'txt', 'zip', 'rar',
+    'mp3', 'm4a', 'wav', 'ogg', 'webm', 'aac', 'opus'
+}
+AUDIO_EXTS = {'mp3', 'm4a', 'wav', 'ogg', 'webm', 'aac', 'opus'}
+IMAGE_EXTS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+PUBLIC_ANNOUNCE_ROLES = {'مطور', 'رئيس', 'مقرر'}
 db = SQLAlchemy(app)
 
 # ─── ROLES ───────────────────────────────────────────────────
 ROLES = {
-    'مطور':  {'lv':6,'see_private':True, 'post_gen':True, 'create_ch':True, 'admin':True},
-    'رئيس':  {'lv':5,'see_private':False,'post_gen':True, 'create_ch':False,'admin':True},
-    'مقرر':  {'lv':4,'see_private':False,'post_gen':True, 'create_ch':False,'admin':True},
-    'ممثل':  {'lv':3,'see_private':True, 'post_gen':True, 'create_ch':True, 'admin':False},
-    'دكتور': {'lv':2,'see_private':True, 'post_gen':False,'create_ch':True, 'admin':False},
-    'طالب':  {'lv':1,'see_private':True, 'post_gen':False,'create_ch':True, 'admin':False},
+    'مطور':  {'lv':6,'see_private':True, 'post_gen':True,  'create_ch':True,  'create_room':True,  'admin':True},
+    'رئيس':  {'lv':5,'see_private':False,'post_gen':True,  'create_ch':False, 'create_room':False, 'admin':True},
+    'مقرر':  {'lv':4,'see_private':False,'post_gen':True,  'create_ch':False, 'create_room':False, 'admin':True},
+    'ممثل':  {'lv':3,'see_private':True, 'post_gen':False, 'create_ch':True,  'create_room':True,  'admin':False},
+    'دكتور': {'lv':2,'see_private':True, 'post_gen':False, 'create_ch':True,  'create_room':True,  'admin':False},
+    'طالب':  {'lv':1,'see_private':True, 'post_gen':False, 'create_ch':False, 'create_room':False, 'admin':False},
 }
 
 # ─── MODELS ──────────────────────────────────────────────────
@@ -91,11 +99,15 @@ class Channel(db.Model):
     section    = db.relationship('Section', backref='channels')
 
     def to_dict(self):
+        meta = channel_meta(self)
         return {'id':self.id,'ch_key':self.ch_key,'name_ar':self.name_ar,'name_en':self.name_en,
-                'desc_ar':self.desc_ar,'desc_en':self.desc_en,'ch_type':self.ch_type,
+                'desc_ar':meta.get('display_desc_ar', self.desc_ar),
+                'desc_en':meta.get('display_desc_en', self.desc_en if not str(self.desc_en or '').lstrip().startswith('{') else ''),
+                'ch_type':self.ch_type,
                 'owner_id':self.owner_id,'owner_name':self.owner.name_ar if self.owner else None,
                 'section_id':self.section_id,'section_name':self.section.name if self.section else None,
-                'photo_url':self.photo_url,'icon':self.icon,'color':self.color}
+                'photo_url':self.photo_url,'icon':self.icon,'color':self.color,
+                'meta':meta}
 
 class Message(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
@@ -213,22 +225,104 @@ def cu():
     return getattr(request, 'current_user', None)
 
 # ─── VISIBILITY ──────────────────────────────────────────────
-def visible_chs(user):
-    rd = ROLES.get(user.role, ROLES['طالب'])
-    out = []
-    for ch in Channel.query.all():
-        if ch.ch_type == 'ann':
-            out.append(ch); continue
-        if not rd['see_private']:
-            continue
-        if ch.owner_id == user.id or ch.section_id == user.section_id:
-            out.append(ch)
-    return out
+def parse_meta(raw):
+    if not raw or not str(raw).lstrip().startswith('{'):
+        return {}
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
 
-def can_write(user, ch):
+def channel_meta(ch):
+    meta = parse_meta(ch.desc_en)
+    if meta:
+        meta.setdefault('display_desc_ar', ch.desc_ar or '')
+        meta.setdefault('display_desc_en', meta.get('display_desc_en', ''))
+        return meta
+    return {
+        'display_desc_ar': ch.desc_ar or '',
+        'display_desc_en': ch.desc_en or '',
+    }
+
+def set_channel_meta(ch, **meta):
+    current = channel_meta(ch)
+    current.update(meta)
+    ch.desc_en = json.dumps(current, ensure_ascii=False)
+    return current
+
+def is_dm_member(user, ch):
+    if ch.ch_type != 'dm' or not ch.ch_key.startswith('dm_'):
+        return False
+    parts = ch.ch_key.replace('dm_', '').split('_')
+    return str(user.id) in parts
+
+def room_scope_matches(user, ch, meta):
+    section_only = bool(meta.get('section_only') or ch.section_id)
+    if user.role == 'مطور' or ch.owner_id == user.id:
+        return True
+    if not section_only:
+        return True
+    if not user.section_id or not ch.section_id:
+        return False
+    return user.section_id == ch.section_id
+
+def can_view_channel(user, ch):
+    meta = channel_meta(ch)
     if ch.ch_type == 'ann':
-        return ROLES.get(user.role, {}).get('post_gen', False)
+        return True
+    if ch.ch_type == 'dm':
+        return is_dm_member(user, ch)
+    if ch.ch_type in {'doc', 'rep'}:
+        if ch.owner_id == user.id or user.role == 'مطور':
+            return True
+        if user.role not in {'طالب', 'ممثل', 'دكتور'}:
+            return False
+        return bool(ch.section_id and user.section_id == ch.section_id)
+    if ch.ch_type == 'room':
+        roles = meta.get('roles', ['مطور', 'ممثل', 'دكتور', 'طالب'])
+        if user.role not in roles and ch.owner_id != user.id and user.role != 'مطور':
+            return False
+        return room_scope_matches(user, ch, meta)
+    return ch.owner_id == user.id or bool(ch.section_id and user.section_id == ch.section_id)
+
+def can_write_channel(user, ch):
+    meta = channel_meta(ch)
+    if ch.ch_type == 'ann':
+        allowed = set(meta.get('post_roles', []))
+        if not allowed:
+            allowed = PUBLIC_ANNOUNCE_ROLES
+        return user.role in allowed or user.role == 'مطور'
+    if ch.ch_type == 'dm':
+        return is_dm_member(user, ch)
+    if ch.ch_type in {'doc', 'rep'}:
+        return ch.owner_id == user.id or user.role == 'مطور'
+    if ch.ch_type == 'room':
+        write_roles = meta.get('write_roles', meta.get('roles', ['مطور', 'ممثل', 'دكتور', 'طالب']))
+        return room_scope_matches(user, ch, meta) and (
+            user.role in write_roles or ch.owner_id == user.id or user.role == 'مطور'
+        )
     return ch.owner_id == user.id
+
+def visible_chs(user):
+    return [ch for ch in Channel.query.all() if ch.ch_type in {'ann', 'doc', 'rep'} and can_view_channel(user, ch)]
+
+def save_upload(file, prefix='upload'):
+    if not file or not file.filename or not allowed_file(file.filename):
+        return None
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    fname = f"{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{secure_filename(file.filename)}"
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+    if ext == 'pdf':
+        mt = 'pdf'
+    elif ext in IMAGE_EXTS:
+        mt = 'img'
+    elif ext in AUDIO_EXTS:
+        mt = 'audio'
+    else:
+        mt = 'file'
+    return {'msg_type': mt, 'file_path': f"/uploads/{fname}", 'file_name': file.filename}
 
 # ─── PUSH ────────────────────────────────────────────────────
 def push_to_user(uid, title, body):
@@ -248,14 +342,13 @@ def push_to_user(uid, title, body):
         PushSub.query.filter(PushSub.id.in_(dead)).delete()
         db.session.commit()
 
-def notify_members(ch, title, body):
-    if ch.ch_type == 'ann':
-        users = User.query.filter_by(active=True).all()
-    else:
-        q = User.query.filter(
-            (User.id == ch.owner_id) | (User.section_id == ch.section_id)
-        ).filter_by(active=True)
-        users = q.all()
+def notify_members(ch, title, body, actor_id=None):
+    users = []
+    for user in User.query.filter_by(active=True).all():
+        if actor_id and user.id == actor_id:
+            continue
+        if can_view_channel(user, ch):
+            users.append(user)
     for u in users:
         db.session.add(Notif(user_id=u.id, title_ar=title, body_ar=body, ch_key=ch.ch_key))
         push_to_user(u.id, title, body)
@@ -332,17 +425,20 @@ def api_users():
 @auth_required
 def api_update_user(uid):
     me     = cu()
-    me_lv  = ROLES.get(me.role, {}).get('lv', 0)
     target = User.query.get_or_404(uid)
     d      = request.get_json() or {}
+    me_lv  = ROLES.get(me.role, {}).get('lv', 0)
+    target_lv = ROLES.get(target.role, {}).get('lv', 0)
+    if not ROLES.get(me.role, {}).get('admin'):
+        return jsonify({'error': 'forbidden'}), 403
     if 'role' in d and d['role'] in ROLES:
         new_lv = ROLES[d['role']]['lv']
-        # Only مطور can set مطور or edit طالب
-        if d['role'] == 'مطور' and me.role != 'مطور':
-            return jsonify({'error': 'forbidden'}), 403
-        if target.role == 'طالب' and me.role != 'مطور':
-            return jsonify({'error': 'forbidden'}), 403
-        if not ROLES.get(me.role, {}).get('admin'):
+        if me.role != 'مطور' and (
+            target.role == 'مطور' or
+            d['role'] == 'مطور' or
+            target_lv >= me_lv or
+            new_lv >= me_lv
+        ):
             return jsonify({'error': 'forbidden'}), 403
         target.role = d['role']
     if 'active'     in d: target.active     = bool(d['active'])
@@ -365,13 +461,20 @@ def api_channels():
         d2 = ch.to_dict()
         last = ch.messages.order_by(Message.created_at.desc()).first()
         if last:
-            p = last.text[:55] if last.text else {'pdf':'📄 PDF','img':'🖼️ صورة','lnk':'🔗 رابط'}.get(last.msg_type, '')
+            p = last.text[:55] if last.text else {
+                'pdf':'📄 PDF',
+                'img':'🖼️ صورة',
+                'lnk':'🔗 رابط',
+                'audio':'🎙️ رسالة صوتية',
+                'file':'📎 ملف'
+            }.get(last.msg_type, '')
             d2['last_msg']  = p
             d2['last_time'] = last.created_at.strftime('%Y-%m-%dT%H:%M:%S')
         else:
             d2['last_msg'] = ''; d2['last_time'] = None
-        d2['can_write'] = can_write(u, ch)
+        d2['can_write'] = can_write_channel(u, ch)
         out.append(d2)
+    out.sort(key=lambda item: item.get('last_time') or '', reverse=True)
     return jsonify(out)
 
 @app.route('/api/channels', methods=['POST'])
@@ -387,10 +490,18 @@ def api_create_channel():
         name_ar    = d.get('name_ar', 'قناة جديدة')[:120],
         name_en    = d.get('name_en', 'New Channel')[:120],
         desc_ar    = d.get('desc_ar', '')[:300],
-        desc_en    = d.get('desc_en', '')[:300],
+        desc_en    = '',
         ch_type    = ct, owner_id=u.id, section_id=u.section_id,
         icon='🔬' if ct=='doc' else '📣',
         color='#00d4ff' if ct=='doc' else '#a855f7'
+    )
+    set_channel_meta(
+        ch,
+        display_desc_ar=ch.desc_ar,
+        display_desc_en=d.get('desc_en', '')[:300],
+        write_roles=['owner'],
+        section_only=True,
+        roles=['مطور', 'ممثل', 'دكتور', 'طالب']
     )
     db.session.add(ch); db.session.flush()
     db.session.add(Message(channel_id=ch.id, msg_type='sys',
@@ -403,7 +514,7 @@ def api_create_channel():
 def api_msgs(ck):
     u  = cu()
     ch = Channel.query.filter_by(ch_key=ck).first_or_404()
-    if ch not in visible_chs(u):
+    if not can_view_channel(u, ch):
         return jsonify({'error': 'forbidden'}), 403
     pg   = request.args.get('page', 1, type=int)
     msgs = ch.messages.order_by(Message.created_at.asc()).paginate(page=pg, per_page=80)
@@ -414,26 +525,25 @@ def api_msgs(ck):
 def api_send(ck):
     u  = cu()
     ch = Channel.query.filter_by(ch_key=ck).first_or_404()
-    if not can_write(u, ch):
+    if not can_write_channel(u, ch):
         return jsonify({'error': 'forbidden'}), 403
     text = request.form.get('text', '').strip()
     link = request.form.get('link_url', '').strip()
     file = request.files.get('file')
-    mt   = 'txt'; fp = fn = None
-    if file and file.filename and allowed_file(file.filename):
-        ext = file.filename.rsplit('.', 1)[1].lower()
-        fname = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{secure_filename(file.filename)}"
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
-        fp = f"/uploads/{fname}"; fn = file.filename
-        mt = 'pdf' if ext == 'pdf' else 'img' if ext in ('png','jpg','jpeg','gif','webp') else 'file'
-    elif link: mt = 'lnk'
-    elif not text: return jsonify({'error': 'empty'}), 400
+    uploaded = save_upload(file, prefix=f'ch{ch.id}')
+    mt   = 'txt'
+    fp = fn = None
+    if uploaded:
+        mt = uploaded['msg_type']; fp = uploaded['file_path']; fn = uploaded['file_name']
+    elif link:
+        mt = 'lnk'
+    elif not text:
+        return jsonify({'error': 'empty'}), 400
     msg = Message(channel_id=ch.id, sender_id=u.id, msg_type=mt,
                   text=text or None, file_path=fp, file_name=fn, link_url=link or None)
     db.session.add(msg); db.session.commit()
     preview = text[:60] if text else (fn or link or '')
-    notify_members(ch, f'رسالة في {ch.name_ar}', f'{u.name_ar}: {preview}')
+    notify_members(ch, f'رسالة في {ch.name_ar}', f'{u.name_ar}: {preview}', actor_id=u.id)
     return jsonify({'ok': True, 'message': msg.to_dict()})
 
 @app.route('/api/messages/<int:mid>', methods=['PATCH'])
@@ -444,7 +554,14 @@ def api_edit_msg(mid):
     if msg.sender_id != u.id:
         return jsonify({'error': 'forbidden'}), 403
     d = request.get_json() or {}
-    if 'text' in d: msg.text = d['text']; msg.edited = True; db.session.commit()
+    text = str(d.get('text', '')).strip()
+    if msg.msg_type != 'txt':
+        return jsonify({'error': 'only_text_messages_can_be_edited'}), 400
+    if not text:
+        return jsonify({'error': 'empty'}), 400
+    msg.text = text
+    msg.edited = True
+    db.session.commit()
     return jsonify({'ok': True, 'message': msg.to_dict()})
 
 @app.route('/api/messages/<int:mid>', methods=['DELETE'])
@@ -539,10 +656,22 @@ def api_read_one(nid):
 @auth_required
 def api_push_sub():
     u = cu()
-    sj = json.dumps(request.get_json() or {})
-    ex = PushSub.query.filter_by(user_id=u.id).first()
-    if ex: ex.sub_json = sj
-    else:  db.session.add(PushSub(user_id=u.id, sub_json=sj))
+    payload = request.get_json() or {}
+    sj = json.dumps(payload)
+    endpoint = (payload.get('endpoint') or '').strip()
+    ex = None
+    if endpoint:
+        for item in PushSub.query.filter_by(user_id=u.id).all():
+            try:
+                if json.loads(item.sub_json).get('endpoint') == endpoint:
+                    ex = item
+                    break
+            except Exception:
+                continue
+    if ex:
+        ex.sub_json = sj
+    else:
+        db.session.add(PushSub(user_id=u.id, sub_json=sj))
     db.session.commit()
     return jsonify({'ok': True})
 
@@ -555,7 +684,7 @@ def api_push_key():
 @auth_required
 def api_upload_photo():
     u = cu(); file = request.files.get('photo')
-    if not file or not allowed_file(file.filename):
+    if not file or file.filename.rsplit('.', 1)[-1].lower() not in IMAGE_EXTS:
         return jsonify({'error': 'invalid'}), 400
     ext = file.filename.rsplit('.', 1)[1]
     fn  = f"photo_{u.id}_{int(time.time())}.{ext}"
@@ -566,7 +695,7 @@ def api_upload_photo():
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, conditional=True)
 
 # ─── STATS ───────────────────────────────────────────────────
 @app.route('/api/stats')
@@ -696,6 +825,148 @@ def seed():
     db.session.commit()
     print(f'✅ Seeded: {User.query.count()} users, {Channel.query.count()} channels')
 
+def ensure_sample_pdf(filename, title):
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(path):
+        return f'/uploads/{filename}'
+    text = f"{title} - UniPortal sample file"
+    stream = f"BT\n/F1 24 Tf\n72 770 Td\n({text}) Tj\n0 -30 Td\n/F1 14 Tf\n(UniPortal generated preview document.) Tj\nET"
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        f"<< /Length {len(stream.encode('latin-1', 'ignore'))} >>\nstream\n{stream}\nendstream".encode('latin-1', 'ignore'),
+    ]
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for i, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{i} 0 obj\n".encode('ascii'))
+        pdf.extend(obj)
+        pdf.extend(b"\nendobj\n")
+    xref_pos = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects)+1}\n".encode('ascii'))
+    pdf.extend(b"0000000000 65535 f \n")
+    for off in offsets[1:]:
+        pdf.extend(f"{off:010d} 00000 n \n".encode('ascii'))
+    pdf.extend(
+        f"trailer\n<< /Size {len(objects)+1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF".encode('ascii')
+    )
+    with open(path, 'wb') as fh:
+        fh.write(pdf)
+    return f'/uploads/{filename}'
+
+def ensure_platform_defaults():
+    db.create_all()
+    dev = User.query.filter_by(role='مطور').order_by(User.id.asc()).first()
+    if not dev:
+        return
+
+    for ch in Channel.query.filter(Channel.ch_type.in_(['ann', 'doc', 'rep', 'room'])).all():
+        meta = channel_meta(ch)
+        if ch.ch_type == 'ann':
+            post_roles = ['مطور', 'رئيس'] if ch.ch_key == 'uni_ann' else ['مطور', 'مقرر']
+            set_channel_meta(
+                ch,
+                display_desc_ar=ch.desc_ar or 'إعلانات رسمية',
+                display_desc_en=meta.get('display_desc_en', ''),
+                post_roles=post_roles,
+                roles=list(ROLES.keys()),
+                section_only=False
+            )
+        elif ch.ch_type in {'doc', 'rep'}:
+            set_channel_meta(
+                ch,
+                display_desc_ar=ch.desc_ar or 'قناة أكاديمية',
+                display_desc_en=meta.get('display_desc_en', ''),
+                roles=['مطور', 'ممثل', 'دكتور', 'طالب'],
+                write_roles=['owner'],
+                section_only=True
+            )
+        elif ch.ch_type == 'room':
+            set_channel_meta(
+                ch,
+                display_desc_ar=ch.desc_ar or 'غرفة نقاش',
+                display_desc_en=meta.get('display_desc_en', ''),
+                roles=meta.get('roles', ['مطور', 'ممثل', 'دكتور', 'طالب']),
+                write_roles=meta.get('write_roles', ['مطور', 'ممثل', 'دكتور']),
+                section_only=meta.get('section_only', bool(ch.section_id))
+            )
+
+    palette = ['#16a34a', '#0ea5e9', '#7c3aed', '#f97316']
+    for idx, sec in enumerate(Section.query.order_by(Section.id.asc()).all()):
+        rep = User.query.filter_by(section_id=sec.id, role='ممثل', active=True).order_by(User.id.asc()).first()
+        doc = User.query.filter_by(section_id=sec.id, role='دكتور', active=True).order_by(User.id.asc()).first()
+        owner = rep or doc or dev
+
+        for ck, title, desc, roles, write_roles, icon in [
+            (
+                f'section_room_{sec.id}',
+                f'دردشة {sec.name}',
+                f'مجموعة الشعبة الخاصة بالطلبة والدكاترة والممثلين في {sec.name}',
+                ['مطور', 'ممثل', 'دكتور', 'طالب'],
+                ['مطور', 'ممثل', 'دكتور', 'طالب'],
+                '💬',
+            ),
+            (
+                f'staff_room_{sec.id}',
+                f'غرفة هيئة {sec.name}',
+                f'غرفة خاصة بالدكاترة والممثلين في {sec.name}',
+                ['مطور', 'ممثل', 'دكتور'],
+                ['مطور', 'ممثل', 'دكتور'],
+                '🛡️',
+            ),
+        ]:
+            room = Channel.query.filter_by(ch_key=ck).first()
+            if not room:
+                room = Channel(
+                    ch_key=ck,
+                    name_ar=f'{icon} {title}',
+                    name_en=title,
+                    desc_ar=desc,
+                    desc_en='',
+                    ch_type='room',
+                    owner_id=owner.id,
+                    section_id=sec.id,
+                    icon=icon,
+                    color=palette[idx % len(palette)]
+                )
+                set_channel_meta(
+                    room,
+                    display_desc_ar=desc,
+                    display_desc_en=title,
+                    roles=roles,
+                    write_roles=write_roles,
+                    section_only=True
+                )
+                db.session.add(room)
+                db.session.flush()
+                db.session.add(Message(
+                    channel_id=room.id,
+                    msg_type='sys',
+                    text=f'تم تجهيز {title} تلقائياً لطلاب وكادر {sec.name}'
+                ))
+            else:
+                set_channel_meta(
+                    room,
+                    display_desc_ar=desc,
+                    display_desc_en=title,
+                    roles=roles,
+                    write_roles=write_roles,
+                    section_only=True
+                )
+                if not room.section_id:
+                    room.section_id = sec.id
+
+    for msg in Message.query.filter_by(msg_type='pdf').all():
+        if msg.file_name and not msg.file_path:
+            safe_name = secure_filename(msg.file_name)
+            msg.file_path = ensure_sample_pdf(safe_name, os.path.splitext(msg.file_name)[0])
+
+    db.session.commit()
+
 # ─── INIT ────────────────────────────────────────────────────
 with app.app_context():
     try: os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -703,6 +974,10 @@ with app.app_context():
     try: seed()
     except Exception as e:
         print(f'Seed error: {e}')
+        import traceback; traceback.print_exc()
+    try: ensure_platform_defaults()
+    except Exception as e:
+        print(f'Defaults error: {e}')
         import traceback; traceback.print_exc()
 
 if __name__ == '__main__':
@@ -788,25 +1063,25 @@ def api_send_dm(target_uid):
     ch     = Channel.query.filter_by(ch_key=dm_key).first()
     if not ch: return jsonify({'error': 'open DM first'}), 400
     text = request.form.get('text','').strip()
+    link = request.form.get('link_url', '').strip()
     file = request.files.get('file')
+    uploaded = save_upload(file, prefix=f'dm{me.id}')
     mt   = 'txt'; fp = fn = None
-    if file and file.filename and allowed_file(file.filename):
-        ext   = file.filename.rsplit('.',1)[1].lower()
-        fname = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{secure_filename(file.filename)}"
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
-        fp = f"/uploads/{fname}"; fn = file.filename
-        mt = 'pdf' if ext=='pdf' else 'img'
-    elif not text: return jsonify({'error':'empty'}),400
+    if uploaded:
+        mt = uploaded['msg_type']; fp = uploaded['file_path']; fn = uploaded['file_name']
+    elif link:
+        mt = 'lnk'
+    elif not text:
+        return jsonify({'error':'empty'}),400
     msg = Message(channel_id=ch.id, sender_id=me.id, msg_type=mt,
-                  text=text or None, file_path=fp, file_name=fn)
+                  text=text or None, file_path=fp, file_name=fn, link_url=link or None)
     db.session.add(msg); db.session.commit()
     # Notify target
     db.session.add(Notif(user_id=target.id,
         title_ar=f'رسالة خاصة من {me.name_ar}',
-        body_ar=text[:60] if text else (fn or '📎'),
+        body_ar=text[:60] if text else (fn or link or '📎'),
         ch_key=dm_key))
-    push_to_user(target.id, f'رسالة خاصة من {me.name_ar}', text[:60] if text else '📎')
+    push_to_user(target.id, f'رسالة خاصة من {me.name_ar}', text[:60] if text else (fn or link or '📎'))
     db.session.commit()
     return jsonify({'ok': True, 'message': msg.to_dict()})
 
@@ -852,49 +1127,71 @@ def api_search_users():
 @auth_required
 def api_get_rooms():
     u   = cu()
-    # Rooms visible to user based on role permissions
     chs = Channel.query.filter_by(ch_type='room').all()
-    rd  = ROLES.get(u.role, ROLES['طالب'])
     out = []
     for ch in chs:
-        import json as jsonlib
-        perms = jsonlib.loads(ch.desc_en or '{}') if ch.desc_en and ch.desc_en.startswith('{') else {}
-        allowed_roles = perms.get('roles', ['مطور','رئيس','مقرر','ممثل','دكتور','طالب'])
-        if u.role in allowed_roles or ch.owner_id == u.id:
-            d2 = ch.to_dict()
-            last = ch.messages.order_by(Message.created_at.desc()).first()
-            d2['last_msg']  = (last.text or '')[:50] if last else ''
-            d2['last_time'] = last.created_at.strftime('%Y-%m-%dT%H:%M:%S') if last else None
-            d2['can_write'] = u.role in perms.get('write_roles', allowed_roles) or ch.owner_id == u.id
-            d2['perms']     = perms
-            out.append(d2)
+        if not can_view_channel(u, ch):
+            continue
+        perms = channel_meta(ch)
+        d2 = ch.to_dict()
+        last = ch.messages.order_by(Message.created_at.desc()).first()
+        if last:
+            d2['last_msg'] = last.text[:50] if last.text else {
+                'pdf': '📄 PDF',
+                'img': '🖼️ صورة',
+                'lnk': '🔗 رابط',
+                'audio': '🎙️ رسالة صوتية',
+                'file': '📎 ملف'
+            }.get(last.msg_type, '')
+            d2['last_time'] = last.created_at.strftime('%Y-%m-%dT%H:%M:%S')
+        else:
+            d2['last_msg'] = ''
+            d2['last_time'] = None
+        d2['can_write'] = can_write_channel(u, ch)
+        d2['perms'] = perms
+        out.append(d2)
+    out.sort(key=lambda item: item.get('last_time') or '', reverse=True)
     return jsonify(out)
 
 @app.route('/api/rooms', methods=['POST'])
 @auth_required
 def api_create_room():
     u = cu()
-    if u.role != 'مطور':
-        return jsonify({'error': 'only developer can create rooms'}), 403
-    import json as jsonlib, time as t2
+    if not ROLES.get(u.role, {}).get('create_room'):
+        return jsonify({'error': 'forbidden'}), 403
+    import time as t2
     d    = request.get_json() or {}
     name = d.get('name_ar','غرفة جديدة')[:120]
     icon = d.get('icon','🏠')
     color= d.get('color','#0066cc')
-    read_roles  = d.get('read_roles',  ['مطور','رئيس','مقرر','ممثل','دكتور','طالب'])
-    write_roles = d.get('write_roles', ['مطور','رئيس','مقرر','ممثل','دكتور'])
-    perms = {'roles': read_roles, 'write_roles': write_roles}
+    allowed_roles = ['مطور', 'ممثل', 'دكتور', 'طالب'] if u.role != 'مطور' else list(ROLES.keys())
+    read_roles  = [r for r in d.get('read_roles', ['مطور','ممثل','دكتور','طالب']) if r in allowed_roles]
+    write_roles = [r for r in d.get('write_roles', ['مطور','ممثل','دكتور']) if r in allowed_roles]
+    if not read_roles:
+        read_roles = ['مطور', 'ممثل', 'دكتور']
+    if not write_roles:
+        write_roles = [r for r in read_roles if r != 'طالب'] or read_roles[:]
+    section_only = bool(d.get('section_only', u.role != 'مطور'))
+    section_id = u.section_id if section_only else (d.get('section_id') if u.role == 'مطور' else u.section_id)
     ch = Channel(
         ch_key     = f'room_{u.id}_{int(t2.time())}',
         name_ar    = f'{icon} {name}',
-        name_en    = f'{icon} {name}',
+        name_en    = name,
         desc_ar    = d.get('desc_ar','غرفة عامة'),
-        desc_en    = jsonlib.dumps(perms),
+        desc_en    = '',
         ch_type    = 'room',
         owner_id   = u.id,
-        section_id = None,
+        section_id = section_id,
         icon       = icon,
         color      = color
+    )
+    set_channel_meta(
+        ch,
+        display_desc_ar=ch.desc_ar,
+        display_desc_en=d.get('desc_en', '')[:300],
+        roles=read_roles,
+        write_roles=write_roles,
+        section_only=section_only
     )
     db.session.add(ch); db.session.flush()
     db.session.add(Message(channel_id=ch.id, msg_type='sys',
@@ -907,6 +1204,8 @@ def api_create_room():
 def api_room_msgs(ck):
     u  = cu()
     ch = Channel.query.filter_by(ch_key=ck, ch_type='room').first_or_404()
+    if not can_view_channel(u, ch):
+        return jsonify({'error': 'forbidden'}), 403
     pg   = request.args.get('page', 1, type=int)
     msgs = ch.messages.order_by(Message.created_at.asc()).paginate(page=pg, per_page=80)
     return jsonify({'messages': [m.to_dict() for m in msgs.items]})
@@ -916,15 +1215,28 @@ def api_room_msgs(ck):
 def api_send_room_msg(ck):
     u  = cu()
     ch = Channel.query.filter_by(ch_key=ck, ch_type='room').first_or_404()
-    import json as jsonlib
-    perms = jsonlib.loads(ch.desc_en or '{}') if ch.desc_en and ch.desc_en.startswith('{') else {}
-    write_roles = perms.get('write_roles', list(ROLES.keys()))
-    if u.role not in write_roles and ch.owner_id != u.id:
+    if not can_write_channel(u, ch):
         return jsonify({'error': 'forbidden'}), 403
     text = request.form.get('text','').strip()
-    if not text: return jsonify({'error':'empty'}),400
-    msg = Message(channel_id=ch.id, sender_id=u.id, msg_type='txt', text=text)
+    link = request.form.get('link_url', '').strip()
+    file = request.files.get('file')
+    uploaded = save_upload(file, prefix=f'room{ch.id}')
+    if uploaded:
+        msg = Message(
+            channel_id=ch.id, sender_id=u.id,
+            msg_type=uploaded['msg_type'], text=text or None,
+            file_path=uploaded['file_path'], file_name=uploaded['file_name'],
+            link_url=link or None
+        )
+    elif link:
+        msg = Message(channel_id=ch.id, sender_id=u.id, msg_type='lnk', text=text or None, link_url=link)
+    elif text:
+        msg = Message(channel_id=ch.id, sender_id=u.id, msg_type='txt', text=text)
+    else:
+        return jsonify({'error':'empty'}),400
     db.session.add(msg); db.session.commit()
+    preview = text[:60] if text else (msg.file_name or link or '')
+    notify_members(ch, f'رسالة في {ch.name_ar}', f'{u.name_ar}: {preview}', actor_id=u.id)
     return jsonify({'ok': True, 'message': msg.to_dict()})
 
 # ─── INSTAGRAM-STYLE POSTS ───────────────────────────────────────────────
@@ -958,7 +1270,7 @@ def api_create_post():
     cap  = request.form.get('caption','').strip()
     file = request.files.get('image')
     ip   = None
-    if file and allowed_file(file.filename):
+    if file and file.filename and file.filename.rsplit('.',1)[1].lower() in IMAGE_EXTS:
         ext = file.filename.rsplit('.',1)[1].lower()
         fn  = f"post_{u.id}_{int(datetime.now().timestamp())}.{ext}"
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

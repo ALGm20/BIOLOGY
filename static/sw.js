@@ -1,8 +1,13 @@
-const CACHE = 'uniportal-v2';
-const ASSETS = ['/', '/static/index.html'];
+const CACHE = 'uniportal-v6-20260412';
+const CORE_ASSETS = [
+  '/manifest.json',
+  '/static/icons/icon-192.png',
+  '/static/icons/icon-512.png',
+  '/static/icons/badge-72.png'
+];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE_ASSETS)).catch(() => {}));
   self.skipWaiting();
 });
 
@@ -16,9 +21,32 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   if (e.request.url.includes('/api/')) return;
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
+  const url = new URL(e.request.url);
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(resp => {
+          const clone = resp.clone();
+          caches.open(CACHE).then(cache => cache.put('/', clone)).catch(() => {});
+          return resp;
+        })
+        .catch(() => caches.match('/') || caches.match(e.request))
+    );
+    return;
+  }
+  if (url.origin === self.location.origin) {
+    e.respondWith(
+      fetch(e.request)
+        .then(resp => {
+          const clone = resp.clone();
+          if (!url.pathname.startsWith('/uploads/')) {
+            caches.open(CACHE).then(cache => cache.put(e.request, clone)).catch(() => {});
+          }
+          return resp;
+        })
+        .catch(() => caches.match(e.request))
+    );
+  }
 });
 
 self.addEventListener('push', e => {
