@@ -652,7 +652,7 @@ function rerenderChList(search='', cont=null) {
     list.forEach(ch => {
       const nm = (ch.name_ar||ch.name_en||'').replace(/[\p{Emoji}\u{1F300}-\u{1FFFF}]/gu,'').trim();
       const isActive = S.activeCh?.ch_key === ch.ch_key;
-      const row = h('div', {class:`ch-row${isActive?' sel':''}`, onClick:()=>{
+      const row = h('div', {class:('ch-row'+(isActive?' sel':'')), onClick:()=>{
         S.activeCh = ch; S.navTab = 'chats';
         document.querySelectorAll('.ch-row').forEach(r=>r.classList.remove('sel'));
         row.classList.add('sel');
@@ -748,7 +748,7 @@ function renderMsgBubble(msg, ch) {
   const mine = msg.sender_id === S.user?.id;
   const srd = msg.sender_role ? rd(msg.sender_role) : null;
 
-  const row = h('div', {class:`msg-row${mine?' msg-mine':''}`, 'data-msg-id':msg.id});
+  const row = h('div', {class:('msg-row'+(mine?' msg-mine':'')), 'data-msg-id':msg.id});
 
   if (!mine) {
     const av = h('div', {style:{width:'28px',height:'28px',borderRadius:'50%',background:`${srd?.clr||'#888'}20`,border:`1.5px solid ${srd?.clr||'#888'}30`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'.68rem',fontWeight:'900',color:srd?.clr||'#888',flexShrink:'0',alignSelf:'flex-end',marginBottom:'4px'}}, inits(msg.sender_name||''));
@@ -764,7 +764,7 @@ function renderMsgBubble(msg, ch) {
     col.appendChild(nameRow);
   }
 
-  const bubble = h('div', {class:`bubble ${mine?'bm':'bo'}`, style:{position:'relative',animation:'msgIn .2s ease'}});
+  const bubble = h('div', {class:('bubble '+(mine?'bm':'bo')+''), style:{position:'relative',animation:'msgIn .2s ease'}});
 
   // Content
   if (msg.msg_type === 'txt') {
@@ -1225,7 +1225,7 @@ function renderSettings() {
 
   const tabBtns={};
   tabs.forEach(id=>{
-    const btn=h('button',{class:`tab-b${id==='profile'?' on':''}`,onClick:()=>{
+    const btn=h('button',{class:('tab-b'+(id==='profile'?' on':'')+''),onClick:()=>{
       Object.values(tabBtns).forEach(b=>b.classList.remove('on'));
       btn.classList.add('on');
       activeTab=id;
@@ -1396,7 +1396,7 @@ function renderAdmin(){
   const tabDefs=[['stats',tl.stats],['users',tl.users]];
   const tabBtns={};
   tabDefs.forEach(([id,lb])=>{
-    const btn=h('button',{class:`tab-b${id==='stats'?' on':''}`,onClick:()=>{
+    const btn=h('button',{class:('tab-b'+(id==='stats'?' on':'')+''),onClick:()=>{
       Object.values(tabBtns).forEach(b=>b.classList.remove('on'));
       btn.classList.add('on');
       loadTabContent(id);
@@ -1671,7 +1671,7 @@ function renderRooms(){
       const perms=room.perms||{};
       const roles=perms.roles||[];
       const rolesDiv=h('div',{style:{display:'flex',gap:'4px',flexWrap:'wrap',marginTop:'3px'}});
-      roles.slice(0,4).forEach(r=>rolesDiv.appendChild(h('span',{class:'pill',style:{background:`${(RD[r]||{clr:'#888'}).clr}15`,color:(RD[r]||{clr:'#888'}).clr,border:`1px solid ${(RD[r]||{clr:'#888'}).clr}25`,fontSize:'.62rem`'}},`${(RD[r]||{icon:'?'}).icon} ${r}`)));
+      roles.slice(0,4).forEach(r=>rolesDiv.appendChild(h('span',{class:'pill',style:{background:`${(RD[r]||{clr:'#888'}).clr}15`,color:(RD[r]||{clr:'#888'}).clr,border:`1px solid ${(RD[r]||{clr:'#888'}).clr}25`,fontSize:'.62rem'}},`${(RD[r]||{icon:'?'}).icon} ${r}`)));
       info.appendChild(rolesDiv);
       top.appendChild(info);
       const status=h('div',{style:{textAlign:'left'}});
@@ -2137,7 +2137,7 @@ function renderAll(){
     topbar.appendChild(logoEl);
     const navDiv=h('div',{style:{flex:'1',display:'flex',gap:'4px',justifyContent:'center',overflow:'hidden'}});
     navItems.forEach(({id,icon,label})=>{
-      const btn=h('button',{class:`tab-b${S.navTab===id?' on':''}`,style:{position:'relative'},onClick:()=>{S.navTab=id;if(id!=='chats')S.activeCh=null;renderAll();}},`${icon} ${label}`);
+      const btn=h('button',{class:('tab-b'+(S.navTab===id?' on':'')+''),style:{position:'relative'},onClick:()=>{S.navTab=id;if(id!=='chats')S.activeCh=null;renderAll();}},`${icon} ${label}`);
       navDiv.appendChild(btn);
     });
     topbar.appendChild(navDiv);
@@ -2165,7 +2165,7 @@ function renderAll(){
     if(!S.activeCh){
       const bnav=h('div',{id:'bnav'});
       navItems.forEach(({id,icon,label})=>{
-        const btn=h('button',{class:`nav-b${S.navTab===id?' on':''}`,style:{position:'relative'},onClick:()=>{S.navTab=id;if(id!=='chats')S.activeCh=null;renderAll();}});
+        const btn=h('button',{class:('nav-b'+(S.navTab===id?' on':'')+''),style:{position:'relative'},onClick:()=>{S.navTab=id;if(id!=='chats')S.activeCh=null;renderAll();}});
         btn.appendChild(h('span',{style:{fontSize:'1.3rem',position:'relative'}},icon));
         btn.appendChild(h('span',{style:{fontSize:'.57rem'}},label));
         bnav.appendChild(btn);
