@@ -1,11 +1,17 @@
-# Force Python only - ignore Java detection
+# Force Python only - block Java detection
 providers = ["python"]
 
 [phases.setup]
-nixPkgs = ["python3", "gcc"]
+nixPkgs = ["python312", "gcc"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+  "python3 -m venv /opt/venv",
+  ". /opt/venv/bin/activate && pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = []
 
 [start]
-cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 180 --preload --access-logfile -"
+cmd = "/opt/venv/bin/gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 180 --preload --access-logfile -"
