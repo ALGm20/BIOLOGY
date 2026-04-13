@@ -21,8 +21,7 @@ app.config.update(
     SQLALCHEMY_TRACK_MODIFICATIONS = False,
     UPLOAD_FOLDER           = os.environ.get('UPLOAD_FOLDER', '/tmp/uploads'),
     MAX_CONTENT_LENGTH      = 50 * 1024 * 1024,
-    VAPID_PUBLIC_KEY        = os.environ.get('VAPID_PUBLIC_KEY',
-        'BBOhs6s7-f4lYor-KTFU9nPBwxlgWgxzq-xQnVEtgFJv2Mq8O_G-0fyVdhzEbtlI4rbi4jBwHSLg5uyglQwds60'),
+    VAPID_PUBLIC_KEY        = os.environ.get('VAPID_PUBLIC_KEY', 'BAehmxPuEAXvqnW0qz_ixuC0Onc67S9-OqtX8IwtZ-NtDNQ_nH0X7z9CGpLCVgrrk64KRlk0Nh_rgil9TW6uWRA'),
     VAPID_PRIVATE_KEY       = os.environ.get('VAPID_PRIVATE_KEY', ''),
     VAPID_CLAIMS            = {'sub': 'mailto:dev@uniportal.edu'},
 )
@@ -327,14 +326,18 @@ def save_upload(file, prefix='upload'):
 # ─── PUSH ────────────────────────────────────────────────────
 def push_to_user(uid, title, body):
     subs = PushSub.query.filter_by(user_id=uid).all()
-    if not subs or not PUSH_OK or not app.config['VAPID_PRIVATE_KEY']:
+    vpk = app.config.get('VAPID_PRIVATE_KEY','')
+    if not vpk:
+        _pem = os.path.join(os.path.dirname(__file__), 'vapid_private.pem')
+        if os.path.exists(_pem): vpk = open(_pem).read()
+    if not subs or not PUSH_OK or not vpk:
         return
     payload = json.dumps({'title': title, 'body': body, 'url': '/'})
     dead = []
     for sub in subs:
         try:
             webpush(subscription_info=json.loads(sub.sub_json), data=payload,
-                    vapid_private_key=app.config['VAPID_PRIVATE_KEY'],
+                    vapid_private_key=vpk,
                     vapid_claims=app.config['VAPID_CLAIMS'])
         except:
             dead.append(sub.id)

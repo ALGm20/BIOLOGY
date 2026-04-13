@@ -639,6 +639,7 @@ function renderLogin() {
       await loadChannels();
       startNotifPolling();
       render();
+      setTimeout(()=>autoRegisterPush(),2500);
     } else {
       errDiv.textContent = data.error || tl.wrongPwd;
       errDiv.style.display = 'block';
@@ -2433,6 +2434,44 @@ window.addEventListener('resize', () => { if(S.user) renderAll(); });
 
 applyTheme();
 
+
+/* ── AUTO PUSH REGISTRATION ── */
+async function autoRegisterPush() {
+  try {
+    if (!S.token || !S.user) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    
+    // Register SW first
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    
+    // Check if already subscribed
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      // Renew subscription on server
+      await API.post('/api/push/subscribe', existing.toJSON());
+      return;
+    }
+    
+    // Only auto-prompt if permission was already granted before
+    if (Notification.permission === 'granted') {
+      const keyData = await API.get('/api/push/key');
+      if (keyData?.key) {
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.key)
+        });
+        await API.post('/api/push/subscribe', sub.toJSON());
+      }
+    }
+    
+    // Badge API - update badge count
+    await updateBadgeCount(S.unreadNotifs || 0);
+  } catch(e) {
+    // Silent fail - push is optional
+  }
+}
+
 // Init: check token
 (async()=>{
   if(S.token){
@@ -2441,6 +2480,7 @@ applyTheme();
       S.user=data;
       await loadChannels();
       startNotifPolling();
+      setTimeout(()=>autoRegisterPush(),3000);
     } else {
       S.token=''; localStorage.removeItem('up_token');
       stopNotifPolling();
