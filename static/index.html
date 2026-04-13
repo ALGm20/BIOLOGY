@@ -54,7 +54,7 @@ body.ltr{direction:ltr}
 #layout{display:flex;flex:1;overflow:hidden}
 #sidebar{width:290px;min-width:260px;border-inline-end:1px solid var(--border);display:flex;flex-direction:column;background:var(--side);flex-shrink:0;transition:transform .2s}
 #main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
-#bnav{display:flex;border-top:1px solid var(--border);background:var(--nav);backdrop-filter:blur(20px);padding-bottom:env(safe-area-inset-bottom);flex-shrink:0}
+#bnav{display:flex;border-top:1px solid var(--border);background:var(--nav);backdrop-filter:blur(20px);padding-bottom:env(safe-area-inset-bottom);flex-shrink:0;position:relative}
 
 /* ── ANIMATIONS ── */
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -639,7 +639,6 @@ function renderLogin() {
       await loadChannels();
       startNotifPolling();
       render();
-      setTimeout(()=>autoRegisterPush(),2500);
     } else {
       errDiv.textContent = data.error || tl.wrongPwd;
       errDiv.style.display = 'block';
@@ -2357,10 +2356,13 @@ function renderAll(){
     return;
   }
 
-  const isDesk = window.innerWidth > 880 || (window.matchMedia('(orientation: landscape)').matches && window.innerWidth > 720);
+  // ✅ Never treat installed PWA as desktop
+  const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isDesk = !isStandaloneMode && window.innerWidth > 880;
   const tl=t();
   const roleData=rd(S.user?.role||'طالب');
-  const navItems=[
+  // All tabs - full list for desktop topbar
+  const allNavItems=[
     {id:'chats',  icon:'💬',label:S.lang==='ar'?'قنوات':'Chats'},
     {id:'rooms',  icon:'🏠',label:S.lang==='ar'?'غرف':'Rooms'},
     {id:'dm',     icon:'✉️', label:'DM'},
@@ -2370,6 +2372,16 @@ function renderAll(){
     ...(roleData.admin?[{id:'admin',icon:'⚙️',label:S.lang==='ar'?'تحكم':'Admin'}]:[]),
     {id:'settings',icon:'👤',label:S.lang==='ar'?'حسابي':'Profile'},
   ];
+  // Mobile: only 5 core items + "more" drawer
+  const mobileMain=[
+    {id:'chats',  icon:'💬',label:S.lang==='ar'?'قنوات':'Chats'},
+    {id:'anns',   icon:'📢',label:S.lang==='ar'?'إعلانات':'Anns'},
+    {id:'notifs', icon:'🔔',label:S.lang==='ar'?'إشعارات':'Notifs',badge:S.unreadNotifs},
+    ...(roleData.admin?[{id:'admin',icon:'⚙️',label:S.lang==='ar'?'تحكم':'Admin'}]:[]),
+    {id:'settings',icon:'👤',label:S.lang==='ar'?'حسابي':'Profile'},
+  ];
+  const mobileMore=allNavItems.filter(x=>!mobileMain.find(m=>m.id===x.id));
+  const navItems=allNavItems;
 
   if(isDesk){
     // Desktop
@@ -2380,7 +2392,7 @@ function renderAll(){
     );
     topbar.appendChild(logoEl);
     const navDiv=h('div',{style:{flex:'1',display:'flex',gap:'4px',justifyContent:'center',overflow:'hidden'}});
-    navItems.forEach(({id,icon,label,badge})=>{
+    allNavItems.forEach(({id,icon,label,badge})=>{
       const btn=h('button',{class:('tab-b'+(S.navTab===id?' on':'')+''),style:{position:'relative'},onClick:()=>{S.navTab=id;if(id!=='chats')S.activeCh=null;renderAll();}},`${icon} ${label}`);
       if (badge) btn.appendChild(h('span',{class:'badge',style:{top:'-6px',right:'-8px'}},String(Math.min(badge,99))));
       navDiv.appendChild(btn);
@@ -2409,14 +2421,74 @@ function renderAll(){
 
     if(!S.activeCh){
       const bnav=h('div',{id:'bnav'});
-      navItems.forEach(({id,icon,label,badge})=>{
-        const btn=h('button',{class:('nav-b'+(S.navTab===id?' on':'')+''),style:{position:'relative'},onClick:()=>{S.navTab=id;if(id!=='chats')S.activeCh=null;renderAll();}});
-        const iconWrap = h('span',{style:{fontSize:'1.3rem',position:'relative'}},icon);
-        if (badge) iconWrap.appendChild(h('span',{class:'badge'},String(Math.min(badge,99))));
-        btn.appendChild(iconWrap);
-        btn.appendChild(h('span',{style:{fontSize:'.57rem'}},label));
-        bnav.appendChild(btn);
+      let moreOpen=false; let morePanel=null;
+
+      const makeNavBtn=(id,icon,label,badge,onClick)=>{
+        const isActive=S.navTab===id;
+        const btn=h('button',{
+          class:('nav-b'+(isActive?' on':'')),
+          style:{position:'relative',flex:'1',minWidth:0},
+          onClick
+        });
+        const iconWrap=h('span',{style:{fontSize:'1.25rem',position:'relative',display:'block',textAlign:'center'}},icon);
+        if(badge) iconWrap.appendChild(h('span',{class:'badge'},String(Math.min(badge,99))));
+        const lbl=h('span',{style:{fontSize:'.55rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'block',width:'100%',textAlign:'center'}},label);
+        btn.append(iconWrap,lbl);
+        return btn;
+      };
+
+      // Main 5 buttons
+      mobileMain.forEach(({id,icon,label,badge})=>{
+        bnav.appendChild(makeNavBtn(id,icon,label,badge,()=>{
+          moreOpen=false; if(morePanel){morePanel.remove();morePanel=null;}
+          S.navTab=id; if(id!=='chats')S.activeCh=null; renderAll();
+        }));
       });
+
+      // "More" button if there are extra tabs
+      if(mobileMore.length>0){
+        const moreBtn=makeNavBtn('more','⊕',S.lang==='ar'?'المزيد':'More',0,()=>{
+          moreOpen=!moreOpen;
+          if(!moreOpen){if(morePanel){morePanel.remove();morePanel=null;}return;}
+          morePanel=h('div',{style:{
+            position:'absolute',bottom:'100%',right:'0',left:'0',
+            background:'var(--nav)',borderTop:'1px solid var(--border)',
+            backdropFilter:'blur(20px)',display:'flex',flexWrap:'wrap',
+            padding:'8px 4px',gap:'4px',zIndex:'50',animation:'slideUp .2s ease'
+          }});
+          mobileMore.forEach(({id,icon,label,badge})=>{
+            const b=h('button',{style:{
+              display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',
+              background:S.navTab===id?'rgba(0,200,255,.12)':'transparent',
+              color:S.navTab===id?'var(--ac)':'var(--tx2)',
+              border:'none',cursor:'pointer',padding:'8px 12px',borderRadius:'10px',
+              flex:'1',minWidth:'70px',fontFamily:'inherit'
+            },onClick:()=>{
+              moreOpen=false;morePanel.remove();morePanel=null;
+              S.navTab=id;if(id!=='chats')S.activeCh=null;renderAll();
+            }});
+            const iw=h('span',{style:{fontSize:'1.3rem'}},icon);
+            if(badge)iw.appendChild(h('span',{class:'badge'},String(Math.min(badge,99))));
+            b.appendChild(iw);
+            b.appendChild(h('span',{style:{fontSize:'.6rem',fontWeight:'700'}},label));
+            morePanel.appendChild(b);
+          });
+          // Close on outside click
+          setTimeout(()=>{
+            document.addEventListener('click',function cl(e){
+              if(morePanel&&!morePanel.contains(e.target)&&!moreBtn.contains(e.target)){
+                moreOpen=false;morePanel.remove();morePanel=null;
+                document.removeEventListener('click',cl);
+              }
+            });
+          },0);
+          bnav.appendChild(morePanel);
+        });
+        // Highlight more btn if current tab is in more
+        if(mobileMore.find(x=>x.id===S.navTab)) moreBtn.classList.add('on');
+        bnav.appendChild(moreBtn);
+      }
+
       mobileWrap.appendChild(bnav);
     }
     app.appendChild(mobileWrap);
@@ -2434,44 +2506,6 @@ window.addEventListener('resize', () => { if(S.user) renderAll(); });
 
 applyTheme();
 
-
-/* ── AUTO PUSH REGISTRATION ── */
-async function autoRegisterPush() {
-  try {
-    if (!S.token || !S.user) return;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    
-    // Register SW first
-    const reg = await navigator.serviceWorker.register('/sw.js');
-    await navigator.serviceWorker.ready;
-    
-    // Check if already subscribed
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) {
-      // Renew subscription on server
-      await API.post('/api/push/subscribe', existing.toJSON());
-      return;
-    }
-    
-    // Only auto-prompt if permission was already granted before
-    if (Notification.permission === 'granted') {
-      const keyData = await API.get('/api/push/key');
-      if (keyData?.key) {
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(keyData.key)
-        });
-        await API.post('/api/push/subscribe', sub.toJSON());
-      }
-    }
-    
-    // Badge API - update badge count
-    await updateBadgeCount(S.unreadNotifs || 0);
-  } catch(e) {
-    // Silent fail - push is optional
-  }
-}
-
 // Init: check token
 (async()=>{
   if(S.token){
@@ -2480,7 +2514,6 @@ async function autoRegisterPush() {
       S.user=data;
       await loadChannels();
       startNotifPolling();
-      setTimeout(()=>autoRegisterPush(),3000);
     } else {
       S.token=''; localStorage.removeItem('up_token');
       stopNotifPolling();
